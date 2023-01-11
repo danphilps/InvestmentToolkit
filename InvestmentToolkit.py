@@ -902,7 +902,7 @@ class NonLinearFactorInvesting():
             # and y: stock_returns
             # ================================
             # X data...
-            stock_factor_loadings, _, _ = FactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
                                                                            date_start=t + window_size,
@@ -1217,7 +1217,7 @@ class NonLinearFactorInvesting():
             pbar.update()
 
             # Run our function, returning only the result object
-            df_stock_factor_loadings, _, _ = FactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            df_stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                               df_sec_rets=df_sec_rets,
                                                                               df_ff_factors=df_ff_factors,
                                                                               date_start=t + window_size,
@@ -1428,7 +1428,7 @@ class SAIInvesting():
             # X variable... NO DATA SNOOPING...
             # =============================
             # X Factor Loading data...
-            stock_factor_loadings, _, _ = FactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
                                                                            date_start=t + forecast_ahead + window_size,
