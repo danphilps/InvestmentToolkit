@@ -543,7 +543,7 @@ class RobustInvestmentUtils():
                     raise TypeError('dt_rnd_trades.loc[curr_date, :] != 1')
 
             # Run the simulation function
-            df_sec_cagr, p = run_sim(df_trades=dt_rnd_trades,
+            df_sec_cagr, p = SimulationUtils.run_sim(df_trades=dt_rnd_trades,
                                      rebalance_freq=6,
                                      df_sec_rets=df_sec_rets,
                                      print_chart=False,
