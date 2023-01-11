@@ -1763,6 +1763,58 @@ class SAIInvesting():
         return df_all_er, sai_mod
 
 class LinearFactorInvesting():
+    
+    # Forecast the expected return of a single stock
+    @staticmethod
+    def factormodel_forecast_er(df_stock_factor_loadings: pd.DataFrame,
+                                df_ff_factors: pd.DataFrame,
+                                r_f: float, 
+                                date_start: int,
+                                date_end: int) -> np.array:
+
+      '''
+      Forecast expected return using factor based approach
+
+      Args:
+        df_stock_factor_loadings: Factor loadings for all out stocks, and all factors
+        df_ff_factors: DataFrame containing factor return (ie reference portfolio returns such as "value") time series, our X variables.
+        r_f: Risk free rate to use
+        date_start: training time window start period
+        date_end: training time window end period
+
+      Returns:
+          e_r: expected return forecast
+
+      '''
+
+      #df_stock_factor_loadings=pd.DataFrame(ols_coefs) 
+      #df_ff_factors=df_ff_factors
+      #r_f=df_tb3ms.iloc[t, 0]
+      #date_start = 80+12
+      #date_end = 12
+
+      # sanity
+      if date_start < date_end: 
+        raise TypeError("Latest date is date=0, date_start is > date_end")
+      if df_ff_factors.shape[0] < df_ff_factors.shape[1]:
+        raise TypeError("Must pass factor returns as columns not rows")  
+      if df_ff_factors.shape[1] != df_stock_factor_loadings.shape[0]-1: #Include the intercept dimension
+        raise TypeError("Must pass same number of factors for security as the df_ff_factors")  
+
+      # Factor returns to assume
+      factor_excess_returns = df_ff_factors.iloc[date_end:date_start, :].sort_index()
+      factor_excess_returns = np.array(1+factor_excess_returns).prod(axis=0)
+      factor_excess_returns = factor_excess_returns ** (12/(date_start-date_end))-1
+
+      # Stock Forecast E(R)_i,t+h
+      e_r = np.dot(factor_excess_returns.T, df_stock_factor_loadings.iloc[1:, :])
+
+      #Only add constant and r_f to (non zero returns) populated securities
+      non_zero_secs = e_r != 0
+      e_r[non_zero_secs] = e_r[non_zero_secs] + r_f + df_stock_factor_loadings.loc['const', non_zero_secs]
+
+      return e_r
+
     # Function that will run a vectorized OLS model, for a given security, over a given period
     # Vectorized OLS regression is far faster.
     # Note the two optional parameter...
