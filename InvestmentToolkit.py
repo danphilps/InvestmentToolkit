@@ -159,7 +159,7 @@ class SimulationUtils():
 
         # Analytics:
         if print_chart == True:
-            p = sim_chart(df_sec_cagr=df_sec_cagr)
+            p = SimulationUtils.sim_chart(df_sec_cagr=df_sec_cagr)
             p.show()
         else:
             p = None
