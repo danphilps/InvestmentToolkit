@@ -872,7 +872,7 @@ class NonLinearFactorInvesting():
             # and y: stock_returns
             # ================================
             # X data...
-            stock_factor_loadings, _, _ = factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            stock_factor_loadings, _, _ = FactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
                                                                            date_start=t + window_size,
@@ -1008,7 +1008,7 @@ class NonLinearFactorInvesting():
 
         # Prep data for training the nn
         # NB: **the y returned may have invalid stocks missing
-        X_nlf, y_nlf = nonlinfactor_er_func_prep_data(df_tb3ms=df_tb3ms,
+        X_nlf, y_nlf = NonLinearFactorInvesting.nonlinfactor_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                       df_sec_rets=df_sec_rets,
                                                       df_ff_factors=df_ff_factors,
                                                       date_end=date_end,  # << Avoid data snooping
@@ -1112,7 +1112,7 @@ class NonLinearFactorInvesting():
         # Prep data for training the nn
         # Only use the latets period: func_training_period=1
         # ==================================='
-        X_test, y_test = nonlinfactor_er_func_prep_data(df_tb3ms=df_tb3ms,
+        X_test, y_test = NonLinearFactorInvesting.nonlinfactor_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                         df_sec_rets=df_sec_rets,
                                                         df_ff_factors=df_ff_factors,
                                                         date_end=date_end,
@@ -1187,7 +1187,7 @@ class NonLinearFactorInvesting():
             pbar.update()
 
             # Run our function, returning only the result object
-            df_stock_factor_loadings, _, _ = factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            df_stock_factor_loadings, _, _ = FactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                               df_sec_rets=df_sec_rets,
                                                                               df_ff_factors=df_ff_factors,
                                                                               date_start=t + window_size,
@@ -1196,7 +1196,7 @@ class NonLinearFactorInvesting():
                                                                               test_complexity=False)  # << Note we pass in the end date here
 
             # Get function of security returns = f(loadings and factor returns)
-            nn_mod, _, _, _ = nonlinfactor_train_er_func(df_tb3ms=df_tb3ms,
+            nn_mod, _, _, _ = NonLinearFactorInvesting.nonlinfactor_train_er_func(df_tb3ms=df_tb3ms,
                                                          df_sec_rets=df_sec_rets,
                                                          df_ff_factors=df_ff_factors,
                                                          date_end=t,
@@ -1205,7 +1205,7 @@ class NonLinearFactorInvesting():
                                                          func_training_period=1)
 
             # Get forecast returns...
-            nlf_er = nonlinfactor_forecast_er(nn_model=nn_model,
+            nlf_er = NonLinearFactorInvesting.nonlinfactor_forecast_er(nn_model=nn_model,
                                               df_tb3ms=df_tb3ms,
                                               df_sec_rets=df_sec_rets,
                                               df_ff_factors=df_ff_factors,
@@ -1398,7 +1398,7 @@ class SAIInvesting():
             # X variable... NO DATA SNOOPING...
             # =============================
             # X Factor Loading data...
-            stock_factor_loadings, _, _ = factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            stock_factor_loadings, _, _ = FactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
                                                                            date_start=t + forecast_ahead + window_size,
@@ -1564,7 +1564,7 @@ class SAIInvesting():
         }
 
         # Generate training data
-        sai_train_X, sai_train_y = sai_er_func_prep_data(df_tb3ms=df_tb3ms,
+        sai_train_X, sai_train_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                          df_sec_rets=df_sec_rets,
                                                          df_ff_factors=df_ff_factors,
                                                          dic_fundamentals=dic_fundamentals,
@@ -1585,7 +1585,7 @@ class SAIInvesting():
         sai_mod.fit(X=sai_train_X, y=sai_train_y)
 
         # Generate test data
-        sai_test_X, sai_test_y = sai_er_func_prep_data(df_tb3ms=df_tb3ms,
+        sai_test_X, sai_test_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                        df_sec_rets=df_sec_rets,
                                                        df_ff_factors=df_ff_factors,
                                                        dic_fundamentals=dic_fundamentals,
@@ -1643,7 +1643,7 @@ class SAIInvesting():
 
         # Get Data
         # ================================
-        sai_test_X, sai_test_y = sai_er_func_prep_data(df_tb3ms=df_tb3ms,
+        sai_test_X, sai_test_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                        df_sec_rets=df_sec_rets,
                                                        dic_fundamentals=dic_fundamentals,
                                                        df_ff_factors=df_ff_factors,
@@ -1730,7 +1730,7 @@ class SAIInvesting():
             pbar.update()
 
             # Train the SAI model
-            sai_mod, sai_X, _, _ = sai_train_er_func(df_tb3ms=df_tb3ms,
+            sai_mod, sai_X, _, _ = SAIInvesting.sai_train_er_func(df_tb3ms=df_tb3ms,
                                                      df_sec_rets=df_sec_rets,
                                                      dic_fundamentals=dic_fundamentals,
                                                      df_ff_factors=df_ff_factors,
@@ -1742,7 +1742,7 @@ class SAIInvesting():
                                                      func_training_period=func_training_period)
 
             # Generate E(R) from our stock level factor model...
-            e_r = sai_forecast_er(sai_mod=sai_mod,
+            e_r = SAIInvesting.sai_forecast_er(sai_mod=sai_mod,
                                   df_tb3ms=df_tb3ms,
                                   df_sec_rets=df_sec_rets,
                                   df_ff_factors=df_ff_factors,
@@ -1868,7 +1868,7 @@ class LinearFactorInvesting():
 
         # Sanity Check: Biases ************************
         if test_complexity == True:
-            failed, _, _ = bias_complexity_check_regression(no_of_instances=X.shape[0],
+            failed, _, _ = RobustInvestmentUtils.bias_complexity_check_regression(no_of_instances=X.shape[0],
                                                             # Try to use  36month window to train the MLP
                                                             no_of_features=X.shape[1],  # Do not count intercept
                                                             no_of_parameters=X.shape[1])
@@ -1939,7 +1939,7 @@ class LinearFactorInvesting():
             pbar.update()
 
             # Run our function, returning only the result object
-            ols_coefs, _, _ = factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+            ols_coefs, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                df_sec_rets=df_sec_rets,
                                                                df_ff_factors=df_ff_factors,
                                                                date_start=t + window_size,
@@ -1949,7 +1949,7 @@ class LinearFactorInvesting():
 
             # Generate E(R) from our stock level factor model...
             # Factor return assumption
-            e_r = factormodel_forecast_er(df_stock_factor_loadings=pd.DataFrame(ols_coefs, index=None),
+            e_r = LinearFactorInvesting.factormodel_forecast_er(df_stock_factor_loadings=pd.DataFrame(ols_coefs, index=None),
                                           df_ff_factors=df_ff_factors,
                                           r_f=df_tb3ms.iloc[t, 0],
                                           date_start=t + factor_return_history,
