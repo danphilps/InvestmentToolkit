@@ -16,6 +16,7 @@ import warnings
 
 # Type checking
 import numbers
+import math
 
 
 class SimulationUtils():
