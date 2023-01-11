@@ -16,7 +16,11 @@ import warnings
 
 # Type checking
 import numbers
+
+#Stats and math
 import math
+from sklearn.metrics import r2_score
+from scipy.stats import f
 
 
 class SimulationUtils():
