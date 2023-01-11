@@ -18,7 +18,7 @@ import warnings
 import numbers
 
 
-class SimulationUtils:
+class SimulationUtils():
     import matplotlib
     import matplotlib.pyplot as plt
     import math
@@ -444,7 +444,7 @@ class SimulationUtils:
 
         return df_all_stock_returns
 
-class RobustInvestmentUtils:
+class RobustInvestmentUtils():
     from numpy import random
     from scipy import stats
 
@@ -749,7 +749,7 @@ class RobustInvestmentUtils:
     from sklearn.preprocessing import StandardScaler
     from sklearn.metrics import r2_score
 
-class NonLinearFactorInvesting:
+class NonLinearFactorInvesting():
 
     @staticmethod
     def nonlinfactor_er_func_prep_data(df_tb3ms: pd.DataFrame,
@@ -1172,7 +1172,7 @@ class NonLinearFactorInvesting:
 
         return df_all_er, nn_mod
 
-class SAIInvesting:
+class SAIInvesting():
     from sklearn.neural_network import MLPRegressor
     from sklearn.model_selection import train_test_split
     from sklearn import preprocessing
@@ -1711,7 +1711,7 @@ class SAIInvesting:
 
         return df_all_er, sai_mod
 
-class LinearFactorInvesting:
+class LinearFactorInvesting():
     # Function that will run a vectorized OLS model, for a given security, over a given period
     # Vectorized OLS regression is far faster.
     # Note the two optional parameter...
