@@ -37,7 +37,6 @@ class SimulationUtils():
 
         '''
         Run a historic simulation of full rebalance portfolios
-
         Args:
           df_trades: DataFrame with trades to incept at the frequency rebalance_freq
           df_sec_rets: stock level returns monthly, our y variable
@@ -45,11 +44,9 @@ class SimulationUtils():
           transaction_costs: costs to apply to changes in position
           print_chart: show analytic diagnostic information
           date_start_of_sim: start date from which to start. Continue to the end of the data.
-
         Returns:
             df_sec_cagr: expected return forecasts
             plt: return the plot object so we can add other series to it - only works if we are printing a chart
-
           '''
 
         # Sanity
@@ -173,11 +170,9 @@ class SimulationUtils():
     def sim_chart(df_sec_cagr: pd.DataFrame):
         '''
         Print return based analytics and chart CAGR
-
         Args:
           df_sec_cagr: DataFrame continaing compound annual growth series of the strategy to be charted
           period_no: Number of periods in the above series to chart/analyze.
-
         Returns:
             None
           '''
@@ -241,15 +236,12 @@ class SimulationUtils():
                              emphasize: bool = False):
         '''
         Add series to existing sim_chart(...,print_chart=True) CAGR chart
-
         Args:
           p: plt object created from sim_chart
           df_cagr: DataFrame continaing compound annual growth series of the strategy to be charted
           title: ... name of this return series
-
         Returns:
             None
-
         '''
 
         # Sanity
@@ -295,15 +287,12 @@ class SimulationUtils():
 
         '''
         Generate simple trades, >=min_quantile_to_buy of df_all_er. Equal weight the stocks selected
-
         Args:
           df_all_er: ALl stock and timeperiod expected returns
           rebalance_freq: how often to calculate quantile trades?
           min_quantile_to_buy: >=quantile to model equal weighted trades
-
         Returns:
             df_stock_er: expected return forecasts
-
         '''
 
         # Sanity
@@ -390,17 +379,14 @@ class SimulationUtils():
         Calculate security returns on the same term as the factor loadings.
         This will be the input for our ML model.
         for securities with zero values in their history, remove them
-
         Args:
             df_tb3ms: DataFrame containing time series of 3m risk free rate
             ols_betas_final: DataFrame containing factor loadings for all securities
             date_start: training time window start period
             date_end: training time window end period
             window_size: Factor lodings calculated over what period?
-
         Returns:
             df_all_stock_returns: stock returns, cols are stocks, rows are time points between date_start and date_end; returns annualized over window_size
-
         '''
 
         # sanity
@@ -467,7 +453,6 @@ class RobustInvestmentUtils():
         This can be extended to return outcomes for the learner selected
         Randomly shuffle the "buy" names, same opportunity set as the model used
         which removes securities excluded fom the models owing to NaNs in training windows etc etc
-
         Args:
           df_opportunity_set_trades: DataFrame with the full opportunityset of trades from the model being tested (ie min_quantile_to_buy set to 0)
           min_quantile_to_buy: what is your model selecting? to 20th percentile? Thats what we will simulate on here.
@@ -475,7 +460,6 @@ class RobustInvestmentUtils():
           rebalance_freq: how often to calculate quantile trades?
           iterations: number of times we create and sim random portfolios.
           q: for multiprocessing of this function. Leave as None to run normally.
-
         Returns:
             df_sec_cagr: end cagr for each of the (iterations) sims
         '''
@@ -571,13 +555,11 @@ class RobustInvestmentUtils():
         Return the empirical distribution of possible return outcomes for the opportunity-set of stocks selected
         Randomly shuffle the "buy" names, same opportunity set as the model used
         which removes securities excluded fom the models owing to NaNs in training windows etc etc
-
         Args:
           df_opportunity_set_trades: DataFrame with the full opportunityset of trades from the model being tested (ie min_quantile_to_buy set to 0)
           df_sec_rets: stock level returns monthly, our y variable
           rebalance_freq: how often to calculate quantile trades?
           iterations: number of times we create and sim random portfolios.
-
         Returns:
             df_sec_cagr: end cagr for each of the (iterations) sims
         '''
@@ -636,12 +618,10 @@ class RobustInvestmentUtils():
         Test the strategy results against a "target shuffling" distribution to determine empirical
         p-value of the returns.
         generates charts and stats to determine the significance of simulation results
-
         Args:
           dt_target_shuffling_dist: df produced by the function target_shuffling_get_dist (columns... ['cagr', 'tr_ann', 'sd_ann', 'sharpe'])
           dt_sim_tr: CAGR series of the strategy to test from the function run_sim
           metric_to_test: which metric to test? ['cagr', 'tr_ann', 'sd_ann', 'sharpe']
-
         Returns:
             None
         '''
@@ -704,15 +684,12 @@ class RobustInvestmentUtils():
 
         '''
         Check the complexity of the mode based on rules of thumb.
-
         Args:
           no_of_instances: Number of rows in your dataset
           no_of_features: Number of columns
           no_of_parameters: Number of weights/coefficients/parameters in your model
-
         Returns:
             rf: sklearn model object
-
         Author:
             failed: Did the complexity check fail? Too complex...
             feature_max: maximum number of features you shluld have given the problem type and instances
@@ -765,7 +742,6 @@ class NonLinearFactorInvesting():
         **For training forecast_ahead > 0**
         **For prediction forecast_ahead = 0**
         NB: This look ahead from date_end! Data snooping risk!!
-
         Args:
             df_tb3ms: risk free rate
             df_sec_rets: stock level returns monthly
@@ -774,7 +750,6 @@ class NonLinearFactorInvesting():
             func_training_period: pass 1 for predictions, >=1 for training. How many periods to use to train the nn? func_training_period=1 will use only one cross section, t=date_end
             forecast_ahead: how many periods ahead are we predicting. Set this to 0 if we need data to predict.
             window_size: return window to use when calculating stock and factor returns.
-
         Returns:
             X: X data used to train/test/predict
             y: X data used to train/test/predict
@@ -920,7 +895,6 @@ class NonLinearFactorInvesting():
                                    plot_residual_scatter: bool = False) -> (object, np.array, np.array, np.array):
         '''
         Train the expected return function for the non-linear approach
-
         Args:
             df_tb3ms: risk free rate
             df_sec_rets: stock level returns monthly
@@ -931,13 +905,11 @@ class NonLinearFactorInvesting():
             func_training_period: how many periods to use to train the nn? func_training_period=1 will use only one cross section, t=date_end
             hidden_layer_sizes: neural net number of units in hidden layer.
             plot_residual_scatter: generate a graph of the residulas for the model
-
         Returns:
             nn_mod: trained sklearn MLP model object
             X_nlf: X data used to train
             y_train: y data used to train
             y_hat: insample y_hat
-
         '''
 
         # Sanity
@@ -1011,7 +983,6 @@ class NonLinearFactorInvesting():
         '''
         Forecast expected return for a specific time window ending date_end, using the non-linear approach.
         NB: Forecasts n number of periods into the future is given by the training function
-
         Args:
             nn_model: MLPRegression object from sklearn
             df_tb3ms: risk free rate
@@ -1019,7 +990,6 @@ class NonLinearFactorInvesting():
             df_ff_factors: DataFrame containing factor return (ie reference portfolio returns such as "value") time series
             date_end: training time window end period
             window_size: return window to use when calculating stock and factor returns.
-
         Returns:
             e_r: expected returns for all stocks at time point date_end
         '''
@@ -1093,7 +1063,6 @@ class NonLinearFactorInvesting():
                                      func_training_period: int = 24) -> (pd.DataFrame, object):
         '''
         Forecast expected return for all time-windows starting at date_start, using the non-linear approach.
-
         Args:
             df_benchmark_trades: only calculate er for benchmark positions
             df_tb3ms: risk free rate
@@ -1102,7 +1071,6 @@ class NonLinearFactorInvesting():
             forecast_ahead: how many periods ahead are we forecasting?
             window_size: return window to use when calculating stock and factor returns.
             func_training_period: window to use to train the nn function of loadings and factor returns to expevcted return ...
-
         Returns:
             df_all_er: expected returns forecast for all stocks across all time periods
         '''
@@ -1196,7 +1164,6 @@ class SAIInvesting():
         **For prediction forecast_ahead = 0**
         NB: This look ahead from date_end! Data snooping risk!!
         Note that instances are rejected if 25% or more of the data points are nan
-
         Args:
             df_tb3ms: risk free rate
             df_sec_rets: stock level returns monthly
@@ -1207,7 +1174,6 @@ class SAIInvesting():
             buysell_threshold_quantile: which quantile of return should we consider a "buy": top 10tb, top 30th percentile
             forecast_ahead: how many periods ahead are we predicting. Set this to 0 if we need data to predict.
             window_size: return window to use when calculating stock and factor returns.
-
         Returns:
             X: X data used to train/test/predict
             y: X data used to train/test/predict
@@ -1476,13 +1442,11 @@ class SAIInvesting():
           window_size: return window to use when calculating stock and factor returns.
           func_training_period: pass 1 for predictions, >=1 for training. How many periods to use to train the nn? func_training_period=1 will use only one cross section, t=date_end
           plot_residual_analytics: generate a data specific to the model
-
         Returns:
           sai_mod: trained SAI model object
           X: X data used to train
           y: y data used to train
           y_hat: insample y_hat
-
         '''
 
         # sanity
@@ -1580,10 +1544,8 @@ class SAIInvesting():
           window_size: return window to use when calculating stock and factor returns.
           training_columns_used: list the columns of data used to train. A non-None value here will run this function
               with the subset of these columns available in the date_end
-
         Returns:
           y_hat: insample y_hat
-
         '''
 
         # Ini
@@ -1654,7 +1616,6 @@ class SAIInvesting():
             window_size: return window to use when calculating stock and factor returns.
             func_training_period: pass 1 for predictions, >=1 for training. How many periods to use to train the nn? func_training_period=1 will use only one cross section, t=date_end
             plot_residual_analytics: generate a data specific to the model
-
         Returns:
             df_all_er: expected returns forecast for all stocks across all time periods
             sai_mod: the last sai model object
@@ -1727,7 +1688,6 @@ class LinearFactorInvesting():
 
         '''
         Calculate all the factor loadings of all our securities
-
         Args:
           df_tb3ms: Risk free rate timeseries
           df_sec_rets: stock level returns monthly, our y variable
@@ -1735,12 +1695,10 @@ class LinearFactorInvesting():
           date_start: training time window start period
           date_end: training time window end period
           test_complexity: test model complexity
-
         Returns:
             ols_model: OLS, sklearn model object
             y: y variable used
             y_hat: in sample forecast of y variable.
-
         '''
 
         # sanity
@@ -1804,7 +1762,6 @@ class LinearFactorInvesting():
 
         '''
         Forecast ALL expected returns, for all securities, all time periods, using factor based approach
-
         Args:
           df_benchmark_trades: only calculate er for benchmark positions, can leave as None...
           df_tb3ms: Risk free rate timeseries
@@ -1813,10 +1770,8 @@ class LinearFactorInvesting():
           window_size: number of months to use, to calculate stock level factor loadings
           factor_return_history: number of months to calculate mean factor returns, which is our assumption for future factor returns
           winsorize_er: Some researchers remove extreme forecats, specify the higher/lowest winsorize_er percentile of rstock forecasts to remove
-
         Returns:
             df_stock_er: expected return forecasts
-
         '''
 
         # E(R) for each stock, in each time period
@@ -1888,13 +1843,3 @@ class LinearFactorInvesting():
 
         return df_stock_er
 
-    # Run the function with our data
-    df_all_er = factormodel_forecast_all_er(df_benchmark_trades=None,
-                                            df_tb3ms=df_tb3ms,
-                                            df_sec_rets=df_sec_rets,
-                                            df_ff_factors=df_ff_factors,
-                                            window_size=36)
-
-    # Test an example
-    test_this_stock = df_all_er.columns[0]
-    df_all_er.columns.get_loc(test_this_stock)
