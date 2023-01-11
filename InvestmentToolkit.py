@@ -1126,9 +1126,9 @@ class NonLinearFactorInvesting():
         if (window_size < 0) | (window_size > df_sec_rets.shape[0]):
             raise TypeError("(window_size < 0) | (window_size > df_sec_rets.shape[0]")
 
-            # Factor returns to assume, annualized...
-        factor_excess_returns = df_ff_factors.iloc[date_end:date_start, :].sort_index()
-        factor_excess_returns = np.array(1 + factor_excess_returns.iloc[date_end:date_start, :]).prod(axis=0)
+        # Factor returns to assume, annualized...
+        factor_excess_returns = df_ff_factors.iloc[date_end:, :].sort_index()
+        factor_excess_returns = np.array(1 + factor_excess_returns.iloc[date_end:, :]).prod(axis=0)
 
         # Annulize monthly returns
         if ((window_size) > 12):
