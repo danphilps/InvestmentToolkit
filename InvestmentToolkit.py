@@ -4,6 +4,7 @@ import numpy as np
 
 # package for navigating the operating system
 import os
+import multiprocessing
 
 # Progress bar
 from tqdm.notebook import tqdm
@@ -14,6 +15,11 @@ from IPython.display import display
 # Suppress warnings for demonstration purposes...
 import warnings
 
+#charts 
+import matplotlib.ticker as mtick
+import seaborn as sns
+import matplotlib.pyplot as plt
+
 # Type checking
 import numbers
 
@@ -21,6 +27,14 @@ import numbers
 import math
 from sklearn.metrics import r2_score
 from scipy.stats import f
+
+from numpy import random
+from scipy import stats
+    
+# Functions for EDA
+from scipy import stats
+from scipy.stats import pearsonr
+from scipy.stats import shapiro
 
 
 class SimulationUtils():
@@ -436,12 +450,23 @@ class SimulationUtils():
         return df_all_stock_returns
 
 class RobustInvestmentUtils():
-    from numpy import random
-    from scipy import stats
 
-    import matplotlib.ticker as mtick
+    # Function we will call to add R2 and p-val to the off-diagonal cells of the pair plot
+    def R2func(x, y, hue=None, ax=None, **kws):
+        """Plot the correlation coefficient in the top left hand corner of a plot."""
+        _, _, r, p, _ = stats.linregress(x, y)
+        ax = ax or plt.gca()
+        ax.annotate(f'ρ = {r:.2f}', xy=(.1, .9), xycoords=ax.transAxes)
+        ax.annotate(f'p-val = {p:.2f}', xy=(.1, .8), xycoords=ax.transAxes)
 
-    import multiprocessing
+    # Function we will call to add normality test stat and p-val to diagnonal cells of pair plot
+    # Note that inputs to linear regression are not required to be normally distributed.
+    def normalityfunc(x, hue=None, ax=None, **kws):
+        """Plot the Shapiro Wilk p-value in the top left hand corner of diagonal cells."""
+        stat, p = shapiro(x)
+        ax = ax or plt.gca()
+        ax.annotate(f'Shapiro-Wilk stat = {stat:.2f}', xy=(.1, .9), xycoords=ax.transAxes)
+        ax.annotate(f'p-val = {p:.2f}', xy=(.1, .8), xycoords=ax.transAxes)
 
     # Target shuffling "lite": get empirical distribution of opportunity-set
     @staticmethod
