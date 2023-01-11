@@ -30,12 +30,16 @@ from scipy.stats import f
 
 from numpy import random
 from scipy import stats
+
+from sklearn.metrics import r2_score
+from scipy.stats import f
+from sklearn.preprocessing import StandardScaler
+from sklearn.neural_network import MLPRegressor
     
 # Functions for EDA
 from scipy import stats
 from scipy.stats import pearsonr
 from scipy.stats import shapiro
-
 
 class SimulationUtils():
     import matplotlib
