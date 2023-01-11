@@ -728,6 +728,96 @@ class RobustInvestmentUtils():
 
 class NonLinearFactorInvesting():
 
+    # Packages to use...
+    import statsmodels
+    from statsmodels.regression.linear_model import OLS
+    import statsmodels.api as sm
+
+    # Function that will run our OLS model to determine factor loadings, for a given security, 
+    # over a given period
+    # Note the two optional parameter... 
+    #   use_robust_cm: estimate from a robust covariance matrix
+    #   plot_residual_scatter: which will generate a scatter plot of our residuals (y vs y_hat)
+    @staticmethod
+    def factormodel_train_single_security(sec_col_no: int,
+                         df_tb3ms: pd.DataFrame,
+                         df_sec_rets: pd.DataFrame,
+                         df_ff_factors: pd.DataFrame,
+                         date_start: int,
+                         date_end: int,
+                         use_robust_cm: bool = False,
+                         plot_residual_scatter: bool = False) -> (object, np.array, np.array):
+
+      '''
+      Calculate the factor loadings of a single security
+
+      Args:
+        sec_col_no: Security to select, row number in our dataframe
+        df_tb3ms: Risk free rate timeseries
+        df_sec_rets: stock level returns monthly, our y variable
+        df_ff_factors: DataFrame containing factor return (ie reference portfolio returns such as "value") time series, our X variables.
+        date_start: training time window start period
+        date_end: training time window end period
+        use_robust_cm: use robust standard errors
+        plot_residual_scatter: generate a graph of the residulas for the model
+
+      Returns:
+          ols_model: OLS, sklearn model object
+          y: y variable used
+          y_hat: in sample forecast of y variable.
+
+      '''    
+
+      # sanity
+      if date_start < date_end: 
+        raise TypeError("Latest date is date=0, date_start is > date_end")
+      if df_ff_factors.shape[0] < df_ff_factors.shape[1]:
+        raise TypeError("Must pass factor returns as columns not rows")  
+      if df_ff_factors.index[0] != df_sec_rets.index[0]:
+        raise TypeError("Dates misaligned")  
+      if df_tb3ms.index[0] != df_sec_rets.index[0]:
+        raise TypeError("Dates misaligned")  
+
+      # Get X and y data...
+      # NB: Security returns... deduct Rf
+      y = [df_sec_rets.iloc[t, sec_col_no] - df_tb3ms.iloc[t, 0] for t in range(date_end,date_start)]
+      X = df_ff_factors.iloc[date_end:date_start, :]
+
+      # Instantiate and train OLS model
+      # We will leave the inputs unaltered but if we normalized, it would result in 
+      # an intercept of aproximately zero, making forecasting down to the stock level betas
+      X = sm.add_constant(X) #<< statsmodels requires we manually add an intercept.
+      ols_model = OLS(y, X)
+      ols_model = ols_model.fit()
+
+      # Optional ... Use heteroskedasticity-autocorrelation robust covariance?
+      if use_robust_cm:
+          ols_model = ols_model.get_robustcov_results()
+
+      # Predict in sample
+      y_hat = ols_model.predict(X)
+      resid = y-y_hat
+
+      # Optional ...
+      if plot_residual_scatter == True:   
+
+        # In sample prediction: Examine residuals for normality... 
+        # NB: The null hypothesis (H0) states that the variable is normally distributed, 
+        # and the alternative hypothesis (H1) states that the variable is NOT normally distributed.  
+        sw_stat, sw_p = shapiro(resid)
+        # Check for normality in the residuals
+        if sw_p < 0.10:
+          print("Residuals appear to be non-normal!") # Make an error in live code
+
+        # square plot     
+        #plt.clf()
+        fig, ax = plt.subplots(figsize=(5, 5))
+        ax.scatter(y-y_hat, y_hat)
+        plt.title('Residual Plot: Shapiro-Wilk p-val: ' + str(round(sw_p, 2)))
+        plt.show()    
+
+      return (ols_model, y, y_hat)
+    
     @staticmethod
     def nonlinfactor_er_func_prep_data(df_tb3ms: pd.DataFrame,
                                        df_sec_rets: pd.DataFrame,
