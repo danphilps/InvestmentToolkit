@@ -48,6 +48,18 @@ class SimulationUtils():
 
     from scipy import stats
 
+    # get the first period trades are present in
+    def start_period_trades(df_trades: pd.DataFrame) -> int:
+
+      #Step through time... earliest to latest-forecast_ahead.
+      t_first_trade = -1
+      for t in range(df_trades.shape[0]-1, 0, -1):
+        if round(df_trades.iloc[t,:].sum(), 1) == 1:
+          t_first_trade = t
+          break
+
+      return t_first_trade
+
     # Simulation routine
     @staticmethod
     def run_sim(df_trades: pd.DataFrame,
