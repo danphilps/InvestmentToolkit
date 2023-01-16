@@ -1804,8 +1804,7 @@ class SAIInvesting():
 
             # Only keep er values from benchmark, nan all non benchmark stocks
             benchmark_mask = df_benchmark_trades.iloc[t, :] == 0
-            #cols_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
-            cols_to_nan = list(compress(range(len(benchmark_mask)), benchmark_mask))
+            cols_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
             df_benchmark_trades.iloc[t, cols_to_nan] = np.nan
 
             df_all_er.iloc[t, :] = e_r.T
