@@ -1630,7 +1630,7 @@ class SAIInvesting():
 
         # Train SAI...
         # ==========================
-        sai_mod = SAIInvesting.SAI(params=params)
+        sai_mod = SAI(params=params)
         sai_mod.fit(X=sai_train_X, y=sai_train_y)
 
         # Generate test data
