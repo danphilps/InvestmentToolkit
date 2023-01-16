@@ -41,6 +41,9 @@ from scipy import stats
 from scipy.stats import pearsonr
 from scipy.stats import shapiro
 
+# SAI...
+from investsai.sai import SAI
+
 class SimulationUtils():
     import matplotlib
     import matplotlib.pyplot as plt
