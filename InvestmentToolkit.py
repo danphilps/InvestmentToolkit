@@ -44,6 +44,9 @@ from scipy.stats import shapiro
 # SAI...
 from investsai.sai import SAI
 
+#Other...
+import itertools
+
 class SimulationUtils():
     import matplotlib
     import matplotlib.pyplot as plt
@@ -1722,9 +1725,6 @@ class SAIInvesting():
         y_hat_final = y_hat_final.merge(y_hat, how='left', left_index=True, right_index=True)
 
         return y_hat_final
-
-
-    import itertools
 
     # Calc all expected returns for all stocks and all time periods.
     # Loop through time, from the earliest period, to the latest, calculating E(R) for every stock we have data for in each time period
