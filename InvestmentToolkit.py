@@ -36,6 +36,8 @@ from scipy.stats import f
 from sklearn.preprocessing import StandardScaler
 from sklearn.neural_network import MLPRegressor
 import statsmodels.api as sm
+import statsmodels
+from statsmodels.regression.linear_model import OLS
 
 # Functions for EDA
 from scipy import stats
@@ -780,10 +782,6 @@ class RobustInvestmentUtils():
     from sklearn.metrics import r2_score
 
 class NonLinearFactorInvesting():
-
-    # Packages to use...
-    import statsmodels
-    from statsmodels.regression.linear_model import OLS
 
     # Function that will run our OLS model to determine factor loadings, for a given security, 
     # over a given period
