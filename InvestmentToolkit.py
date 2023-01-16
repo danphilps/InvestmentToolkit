@@ -1252,7 +1252,7 @@ class NonLinearFactorInvesting():
                                                          date_end=t,
                                                          forecast_ahead=forecast_ahead,
                                                          window_size=window_size,
-                                                         func_training_period=1)
+                                                         func_training_period=func_training_period)
 
             # Get forecast returns...
             nlf_er = NonLinearFactorInvesting.nonlinfactor_forecast_er(nn_model=nn_mod,
