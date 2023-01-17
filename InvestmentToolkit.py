@@ -1076,12 +1076,12 @@ class NonLinearFactorInvesting():
 
         # Train ANN... R = f(loadings;factor returns)
         nn_mod = MLPRegressor(hidden_layer_sizes=(hidden_layer_sizes),
-                              max_iter=500,
+                              max_iter=1000, # 500
                               learning_rate_init=0.01,
                               random_state=0,
-                              solver='lbfgs',  # 'adam',
-                              tol=0.001,
-                              activation='logistic')  # 'tanh', 'logistic'
+                              solver='adam',  # 'adam', 'lbfgs'
+                              tol=0.01, = 0.001
+                              activation='tanh')  # 'tanh', 'logistic'
 
         nn_mod = nn_mod.fit(X=X_train_norm, y=np.ravel(y_train))
 
