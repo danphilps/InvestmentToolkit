@@ -1031,7 +1031,7 @@ class NonLinearFactorInvesting():
                                    forecast_ahead: int = 6,
                                    window_size: int = 36,
                                    func_training_period: int = 60,
-                                   hidden_layer_sizes: list = [5],
+                                   hidden_layer_sizes: list = [3],
                                    plot_residual_scatter: bool = False) -> (object, np.array, np.array, np.array):
         '''
         Train the expected return function for the non-linear approach
