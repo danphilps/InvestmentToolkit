@@ -1960,7 +1960,7 @@ class LinearFactorInvesting():
           df_ff_factors: DataFrame containing factor return (ie reference portfolio returns such as "value") time series, our X variables.
           window_size: number of months to use, to calculate stock level factor loadings
           factor_return_history: number of months to calculate mean factor returns, which is our assumption for future factor returns
-          winsorize_er: Some researchers remove extreme forecats, specify the higher/lowest winsorize_er percentile of rstock forecasts to remove
+          winsorize_er: Some researchers remove extreme forecasts, specify the higher/lowest winsorize_er percentile of rstock forecasts to remove
         Returns:
             df_stock_er: expected return forecasts
         '''
@@ -2016,7 +2016,6 @@ class LinearFactorInvesting():
 
         # winzorize?
         if winsorize_er > 0:
-            winsorize_er = 0.05
             # Get upper and lower limit to remove by col
             upper_kill = df_stock_er.quantile(q=1 - winsorize_er, axis=1)
             lower_kill = df_stock_er.quantile(q=winsorize_er, axis=1)
