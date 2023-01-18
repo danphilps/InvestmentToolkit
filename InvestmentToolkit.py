@@ -1172,7 +1172,7 @@ class NonLinearFactorInvesting():
 
         X_test_index = X_test.index.to_list()
 
-        # *Quirk ... Sklearn needs 2D array to predict - insert zero row...
+        # *Quirk ... Sklearn needs 2D array to predict - insert extra row...
         blank_row = np.repeat([999999], X_test.shape[1])
         X_test = np.vstack((X_test, blank_row))
 
@@ -1223,7 +1223,13 @@ class NonLinearFactorInvesting():
         df_stock_SW_pval = df_all_er.copy(deep=True)
 
         # start period?
-        start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+        # ££££££££££££££££££££££££££££
+        if df_benchmark_trades is None:
+            start_period = df_ff_factors.shape[0]
+        else:
+            #start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+            start_period = min(df_benchmark_trades.shape[0] + max(func_training_period, window_size) + forecast_ahead + 1, df_ff_factors.shape[0])
+        # ££££££££££££££££££££££££££££
 
         # Progress
         pbar = tqdm()
@@ -1836,12 +1842,6 @@ class LinearFactorInvesting():
 
       '''
 
-      #df_stock_factor_loadings=pd.DataFrame(ols_coefs) 
-      #df_ff_factors=df_ff_factors
-      #r_f=df_tb3ms.iloc[t, 0]
-      #date_start = 80+12
-      #date_end = 12
-
       # sanity
       if date_start < date_end: 
         raise TypeError("Latest date is date=0, date_start is > date_end")
@@ -1976,7 +1976,7 @@ class LinearFactorInvesting():
         if df_benchmark_trades is None:
             start_period = df_ff_factors.shape[0]
         else:
-            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+            start_period = min(df_benchmark_trades.shape[0] + window_size + 1, df_ff_factors.shape[0])
 
             # Progress
         pbar = tqdm()
