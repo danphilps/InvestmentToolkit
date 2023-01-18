@@ -1223,8 +1223,11 @@ class NonLinearFactorInvesting():
         df_stock_SW_pval = df_all_er.copy(deep=True)
 
         # start period?
-        start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
-
+        if df_benchmark_trades is None:
+            start_period = df_ff_factors.shape[0]
+        else:
+            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+        
         # Progress
         pbar = tqdm()
         pbar.reset(
