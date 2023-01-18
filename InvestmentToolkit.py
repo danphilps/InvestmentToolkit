@@ -715,8 +715,8 @@ class RobustInvestmentUtils():
         plt.gca().set_title(
             'Empirical Distribution Frequency Bar Chart (Target Shuffling): ' + metric_to_test + '(iterations = ' + str(
                 dt_target_shuffling_dist.shape[0]) + ')', wrap=True)
-        plt.axvline(x=upper_ci, color='red', label='Upper CI')
-        plt.axvline(x=lower_ci, color='red', label='Upper CI')
+        plt.axvline(x=upper_ci, color='red', label='Upper CI (90%)')
+        plt.axvline(x=lower_ci, color='red', label='Lower CI (10%)')
         plt.axvline(x=strategy_score, color='black', label='Strategy Value', linewidth=10)
         plt.legend()
         plt.xlabel(metric_to_test)
@@ -725,7 +725,7 @@ class RobustInvestmentUtils():
 
         # Stats
         p_val = stats.percentileofscore(dt_target_shuffling_dist[metric_to_test].T.to_numpy(), strategy_score) / 100
-        print('Empirical probability value of the strategy: ' + metric_to_test + ':' + str(round(p_val, 2)))
+        print('Empirical probability value of the strategy: ' + metric_to_test + ':' + str(round((1-p_val), 2)))
 
         return
 
@@ -1030,7 +1030,7 @@ class NonLinearFactorInvesting():
                                    date_end: int,
                                    forecast_ahead: int = 6,
                                    window_size: int = 36,
-                                   func_training_period: int = 60,
+                                   func_training_period: int = 36,
                                    hidden_layer_sizes: list = [3],
                                    plot_residual_scatter: bool = False) -> (object, np.array, np.array, np.array):
         '''
@@ -1172,7 +1172,7 @@ class NonLinearFactorInvesting():
 
         X_test_index = X_test.index.to_list()
 
-        # *Quirk ... Sklearn needs 2D array to predict - insert extra row...
+        # *Quirk ... Sklearn needs 2D array to predict - insert zero row...
         blank_row = np.repeat([999999], X_test.shape[1])
         X_test = np.vstack((X_test, blank_row))
 
@@ -1223,13 +1223,7 @@ class NonLinearFactorInvesting():
         df_stock_SW_pval = df_all_er.copy(deep=True)
 
         # start period?
-        # ££££££££££££££££££££££££££££
-        if df_benchmark_trades is None:
-            start_period = df_ff_factors.shape[0]
-        else:
-            #start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
-            start_period = min(df_benchmark_trades.shape[0] + max(func_training_period, window_size) + forecast_ahead + 1, df_ff_factors.shape[0])
-        # ££££££££££££££££££££££££££££
+        start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
 
         # Progress
         pbar = tqdm()
@@ -1246,8 +1240,7 @@ class NonLinearFactorInvesting():
             df_stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                               df_sec_rets=df_sec_rets,
                                                                               df_ff_factors=df_ff_factors,
-                                                                              date_start=t + window_size,
-                                                                              # << Note we pass in the start date here
+                                                                              date_start=t + window_size, # << Note we pass in the start date here
                                                                               date_end=t,
                                                                               test_complexity=False)  # << Note we pass in the end date here
 
@@ -1375,7 +1368,7 @@ class SAIInvesting():
         all_ticker = list(set(check_index))  # get unique
         all_dates = list(set(check_cols))  # get unique
 
-        # Built training data over thei many periods: func_training_period
+        # Built training data over their many periods: func_training_period
         # The time points to load are limited by the dtaa we have. Build X and y for window_size, func_training_period, else the longest period available...
         dic_loadings = dict()
         master_X = pd.DataFrame()
@@ -1457,8 +1450,7 @@ class SAIInvesting():
             stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
-                                                                           date_start=t + forecast_ahead + window_size,
-                                                                           # << Note we pass in the start date here
+                                                                           date_start=t + forecast_ahead + window_size, # << Note we pass in the start date here
                                                                            date_end=t + forecast_ahead + 1,
                                                                            test_complexity=False)  # << Note we pass in the end date here
 
@@ -1842,6 +1834,12 @@ class LinearFactorInvesting():
 
       '''
 
+      #df_stock_factor_loadings=pd.DataFrame(ols_coefs) 
+      #df_ff_factors=df_ff_factors
+      #r_f=df_tb3ms.iloc[t, 0]
+      #date_start = 80+12
+      #date_end = 12
+
       # sanity
       if date_start < date_end: 
         raise TypeError("Latest date is date=0, date_start is > date_end")
@@ -1976,7 +1974,7 @@ class LinearFactorInvesting():
         if df_benchmark_trades is None:
             start_period = df_ff_factors.shape[0]
         else:
-            start_period = min(df_benchmark_trades.shape[0] + window_size + 1, df_ff_factors.shape[0])
+            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
 
             # Progress
         pbar = tqdm()
