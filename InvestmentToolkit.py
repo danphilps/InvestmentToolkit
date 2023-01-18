@@ -1765,8 +1765,12 @@ class SAIInvesting():
         df_all_er.columns = df_sec_rets.columns[0:df_sec_rets.shape[1]]  # .astype(int)
 
         # start period?
-        start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
-
+        # start period?
+        if df_benchmark_trades is None:
+            start_period = df_ff_factors.shape[0]
+        else:
+            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+        
         # Progress
         pbar = tqdm()
         pbar.reset(
