@@ -914,14 +914,14 @@ class NonLinearFactorInvesting():
             # Built training data over thei many periods: func_training_period
         # The time points to load are limited by the dtaa we have. Build X and y for window_size, func_training_period, else the longest period available...
         X = pd.DataFrame()
-        y = pd.DataFrame()
+        y = pd.DataFrame()        
         for t in range(date_end + forecast_ahead, date_end + forecast_ahead + func_training_period):
 
             # ================================
             # Get data components for X at time t: df_stock_factor_loadings, factor_excess_returns;
             # and y: stock_returns
             # ================================
-            # X data...
+            # X data..
             stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
@@ -1076,10 +1076,10 @@ class NonLinearFactorInvesting():
 
         # Train ANN... R = f(loadings;factor returns)
         nn_mod = MLPRegressor(hidden_layer_sizes=(hidden_layer_sizes),
-                              max_iter=250, # 500
-                              learning_rate_init=0.01,
+                              max_iter=500, # 500
+                              learning_rate_init=0.001,
                               random_state=0,
-                              solver='sgd',  # 'adam', 'sgd'
+                              solver='adam',  # 'adam', 'sgd'
                               tol=0.001, #= 0.001
                               activation='tanh')  # 'tanh', 'logistic'
 
@@ -1224,17 +1224,17 @@ class NonLinearFactorInvesting():
 
         # start period?
         if df_benchmark_trades is None:
-            start_period = df_ff_factors.shape[0]
+            start_period = df_ff_factors.shape[0] - max(func_training_period, window_size) - forecast_ahead
         else:
-            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+            start_period = min(df_benchmark_trades.shape[0] - max(func_training_period, window_size) - forecast_ahead, df_ff_factors.shape[0]- max(func_training_period, window_size) - forecast_ahead)
         
         # Progress
         pbar = tqdm()
         pbar.reset(
-            total=start_period - max(func_training_period, window_size) - forecast_ahead - 1)  # initialise with new `total`
+            total=start_period - 1)  # initialise with new `total`
 
         # Step through time... earliest to latest-forecast_ahead.
-        for t in range(start_period - max(func_training_period, window_size) - forecast_ahead - 1, -1, -1):
+        for t in range(start_period, -1, -1):
 
             # Progress
             pbar.update()
@@ -1269,6 +1269,15 @@ class NonLinearFactorInvesting():
             nlf_er_all_cols = pd.DataFrame(np.zeros((1, df_sec_rets.shape[1])), index=None)
             nlf_er_all_cols.columns = df_sec_rets.columns
             nlf_er_all_cols[row_nlf_er.columns] = row_nlf_er
+            
+            
+            # Only keep er values from benchmark, nan all non benchmark stocks
+            if df_benchmark_trades is not None:
+                benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
+                col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
+                cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
+                cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
+                e_r.loc[cols_to_nan] = np.nan
 
             df_all_er.iloc[t, :] = nlf_er_all_cols
 
@@ -1313,7 +1322,7 @@ class SAIInvesting():
             dic_fundamentals: dictionary containing fundamentals
             date_end: training time window end period
             func_training_period: pass 1 for predictions, >=1 for training. How many periods to use to train the nn? func_training_period=1 will use only one cross section, t=date_end
-            buysell_threshold_quantile: which quantile of return should we consider a "buy": top 10tb, top 30th percentile
+            buysell_threshold_quantile: which quantile of return should we consider a "buy" and a sell: top/bottom 10th, top/bottom 30th percentile
             forecast_ahead: how many periods ahead are we predicting. Set this to 0 if we need data to predict.
             window_size: return window to use when calculating stock and factor returns.
         Returns:
@@ -1336,8 +1345,12 @@ class SAIInvesting():
             raise TypeError("(func_training_period < 0) | (func_training_period > df_sec_rets.shape[0]")
         if (window_size < 0) | (window_size > df_sec_rets.shape[0]):
             raise TypeError("(window_size < 0) | (window_size > df_sec_rets.shape[0]")
-
-            # Validate: get all dates and tickets from fundamentals
+        
+        buysell_threshold_quantile = abs(buysell_threshold_quantile)
+        if buysell_threshold_quantile > 0.4:
+            raise TypeError("NB - this function flags the top and bottom using this param: buysell_threshold_quantile > 0.4")
+            
+        # Validate: get all dates and tickets from fundamentals
         check_index = None
         check_cols = None
         if dic_fundamentals is not None:
@@ -1375,7 +1388,8 @@ class SAIInvesting():
         # The time points to load are limited by the dtaa we have. Build X and y for window_size, func_training_period, else the longest period available...
         dic_loadings = dict()
         master_X = pd.DataFrame()
-        master_y = pd.DataFrame()
+        master_y_class = pd.DataFrame()
+        master_y_tr = pd.DataFrame()
 
         for t in range(date_end + forecast_ahead, date_end + forecast_ahead + func_training_period):
 
@@ -1388,11 +1402,11 @@ class SAIInvesting():
             # =============================
             y_t = pd.DataFrame(np.zeros((len(all_ticker), 0)), index=None)
             # Deduct rf from stock level returns, as it will have been for factor returns
-            rf_ret = df_tb3ms.iloc[t:t + forecast_ahead, :].sort_index()
+            rf_ret = df_tb3ms.iloc[t - forecast_ahead:t, :].sort_index()
             rf_ret.astype(float)
 
             # y data... Stock level returns ... forecast ahead by forecast_ahead periods
-            stock_returns = df_sec_rets.iloc[t:t + forecast_ahead, :].sort_index()
+            stock_returns = df_sec_rets.iloc[t - forecast_ahead:t, :].sort_index()
             stock_returns.astype(float)
 
             # Adjust returns for r_fs
@@ -1434,18 +1448,22 @@ class SAIInvesting():
             else:
                 y_t['ticker'] = y_t['ticker'].astype(str)
             y_t = y_t.set_index('ticker')
-
+            
+            # Capture the best and the worst to create SAI rules for...
+            # ===========================================================
             # Convert y to a {1,0} classifier {buy, sell}
-            buy_threshold = y_t[y_t.isna() == False]['y'].quantile(q=buysell_threshold_quantile)
-            buy_mask = y_t['y'] >= buy_threshold
-
+            buy_threshold = y_t[y_t.isna() == False]['y'].quantile(q=(1-buysell_threshold_quantile))
+            sell_threshold = y_t[y_t.isna() == False]['y'].quantile(q=buysell_threshold_quantile)
+            buysell_mask = (y_t['y'] >= buy_threshold) | (y_t['y'] <= sell_threshold)
+            
             # y class...
-            y_class_t = y_t
+            y_class_t = y_t.copy(deep=True)
             y_class_t['y'] = 0
-            y_class_t.loc[buy_mask, 'y'] = 1
+            y_class_t.loc[buysell_mask, 'y'] = 1
 
             # Add to master
-            master_y = pd.concat((master_y, y_t), axis=0)
+            master_y_class = pd.concat((master_y_class, y_class_t), axis=0)     
+            master_y_tr = pd.concat((master_y_tr, y_t), axis=0)           
 
             # X variable... NO DATA SNOOPING...
             # =============================
@@ -1453,10 +1471,10 @@ class SAIInvesting():
             stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                            df_sec_rets=df_sec_rets,
                                                                            df_ff_factors=df_ff_factors,
-                                                                           date_start=t + forecast_ahead + window_size, # << Note we pass in the start date here
-                                                                           date_end=t + forecast_ahead + 1,
+                                                                           date_start=t + window_size, # << Note we pass in the start date here
+                                                                           date_end=t,
                                                                            test_complexity=False)  # << Note we pass in the end date here
-
+            
             # X...
             # X1) Add fact loadings
             # ---------------------------------------------------
@@ -1518,10 +1536,11 @@ class SAIInvesting():
             X_t = X_t.set_index('ticker')
             master_X = pd.concat((master_X, X_t), axis=0)
 
-            # Final preps...
+        # Final preps...
         # Drop na securities,
         # ======================================
-        sai_y = master_y
+        sai_y_class = master_y_class
+        sai_y_tr = master_y_tr
         sai_X = master_X
 
         # Exclude all nas is we are only using factor loadings.
@@ -1532,17 +1551,19 @@ class SAIInvesting():
         else:
             X_rows_to_kill = sai_X.loc[sai_X.isna().sum(axis=1) != 0].index.to_list()
 
-        y_rows_to_kill = sai_y.loc[sai_y.isna().sum(axis=1) != 0].index.to_list()
+        y_rows_to_kill = sai_y_class.loc[sai_y_class.isna().sum(axis=1) != 0].index.to_list()
         rows_to_kill = X_rows_to_kill + y_rows_to_kill
         rows_to_kill = list(set(rows_to_kill))
         rows_to_keep = [tk for tk in sai_X.index.to_list() if tk not in X_rows_to_kill]
 
         # Kill invalid secs from X and y
         sai_X = sai_X.loc[rows_to_keep]
-        sai_y = sai_y.loc[rows_to_keep]
+        sai_y_class = sai_y_class.loc[rows_to_keep]
+        sai_y_tr = sai_y_tr.loc[rows_to_keep]
 
         # Drop dates
-        sai_y = sai_y.drop('date', axis=1)
+        sai_y_class = sai_y_class.drop('date', axis=1)
+        sai_y_tr = sai_y_tr.drop('date', axis=1)
         sai_X = sai_X.drop('date', axis=1)
 
         # kill all cols with < 3 unique values
@@ -1552,7 +1573,7 @@ class SAIInvesting():
                 sai_X = sai_X.drop(sai_X.columns[col_no])
             col_no += 1
 
-        return sai_X, sai_y
+        return sai_X, sai_y_class, sai_y_tr
 
 
     import sklearn.metrics as metrics
@@ -1603,7 +1624,7 @@ class SAIInvesting():
         if (window_size < 0) | (window_size > df_sec_rets.shape[0]):
             raise TypeError("(window_size < 0) | (window_size > df_sec_rets.shape[0]")
 
-            # ================================
+        # ================================
         # train SAI
         # ================================
         # Input parameters
@@ -1615,28 +1636,25 @@ class SAIInvesting():
         }
 
         # Generate training data
-        sai_train_X, sai_train_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
+        sai_train_X, sai_train_y_class, sai_train_y_tr = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                          df_sec_rets=df_sec_rets,
                                                          df_ff_factors=df_ff_factors,
                                                          dic_fundamentals=dic_fundamentals,
-                                                         date_end=date_end,  # << Training, No data snooping
+                                                         date_end=date_end+1,  # << Training, No data snooping
                                                          func_training_period=func_training_period,
                                                          buysell_threshold_quantile=buysell_threshold_quantile,
                                                          forecast_ahead=forecast_ahead,
                                                          window_size=window_size)
-
-        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        # sai_train_X = sai_train_X.fillna(0)
-        # sai_train_y = sai_train_y.fillna(0)
-        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
+        
         # Train SAI...
         # ==========================
-        sai_mod = SAI(params=params)
-        sai_mod.fit(X=sai_train_X, y=sai_train_y)
+        sai_mod = SAI_new(params=params)
+        sai_mod.fit(X=sai_train_X, 
+                    y=sai_train_y_class,
+                    yreal=sai_train_y_tr)
 
         # Generate test data
-        sai_test_X, sai_test_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
+        sai_test_X, sai_test_y_class, sai_test_y_tr = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                        df_sec_rets=df_sec_rets,
                                                        df_ff_factors=df_ff_factors,
                                                        dic_fundamentals=dic_fundamentals,
@@ -1645,19 +1663,16 @@ class SAIInvesting():
                                                        buysell_threshold_quantile=buysell_threshold_quantile,
                                                        window_size=window_size)  # << Only use 1 period
 
-        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-        # sai_test_X = sai_test_X.fillna(0)
-        # @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
-
-        # Predict using only rules with a lift of >1.75
+        # Predict using only rules with lift of > ...
         # ==========================
         y_hat = sai_mod.predict(X=sai_test_X,
-                                metric='causal_lift',
-                                cutoff=lift_cut_off)
+                                metric='returns',
+                                eval_metric='causal_lift',
+                                eval_val=lift_cut_off)
 
         y_hat = y_hat.sort_index()
 
-        return sai_mod, sai_test_X, sai_test_y, y_hat
+        return sai_mod, sai_test_X, sai_test_y_tr, y_hat
 
 
     # Forecast er function, requiring a causal_lift>1
@@ -1694,11 +1709,11 @@ class SAIInvesting():
 
         # Get Data
         # ================================
-        sai_test_X, sai_test_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
+        sai_test_X, _, sai_test_y = SAIInvesting.sai_er_func_prep_data(df_tb3ms=df_tb3ms,
                                                        df_sec_rets=df_sec_rets,
                                                        dic_fundamentals=dic_fundamentals,
                                                        df_ff_factors=df_ff_factors,
-                                                       date_end=0,  # << Latest period
+                                                       date_end=date_end,  # << Latest period
                                                        func_training_period=1,
                                                        buysell_threshold_quantile=buysell_threshold_quantile,
                                                        forecast_ahead=0,  # << Latest period
@@ -1714,8 +1729,9 @@ class SAIInvesting():
         # Predict using only rules with a causal lift of >1
         # ==========================
         y_hat = sai_mod.predict(X=sai_test_X,
-                                metric='causal_lift',
-                                cutoff=lift_cut_off)
+                                metric='returns',
+                                eval_metric='causal_lift',
+                                eval_val=lift_cut_off)
         y_hat = y_hat.sort_index()
 
         # convert back to dimensions of df_sec_rets
@@ -1764,53 +1780,63 @@ class SAIInvesting():
         df_all_er.index = df_sec_rets.index[0:df_sec_rets.shape[0] - window_size]
         df_all_er.columns = df_sec_rets.columns[0:df_sec_rets.shape[1]]  # .astype(int)
 
-        # start period?
+        
         # start period?
         if df_benchmark_trades is None:
-            start_period = df_ff_factors.shape[0]
+            raise TypeError("df_benchmark_trades is required")
         else:
-            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+            start_period = min(df_benchmark_trades.shape[0] - forecast_ahead + window_size - func_training_period, df_ff_factors.shape[0] - forecast_ahead - window_size - func_training_period) 
         
         # Progress
         pbar = tqdm()
         pbar.reset(
-            start_period - max(func_training_period, window_size, func_training_period) - 1)  # initialise with new `total`
+            start_period - 1)  # initialise with new `total`
 
         # Step through time... earliest to latest.
-        for t in range(start_period - max(func_training_period, window_size, func_training_period) - 1, -1, -1):
+        for t in range(start_period, -1, -1):
             # Progress
             pbar.update()
 
             # Train the SAI model
-            sai_mod, sai_X, _, _ = SAIInvesting.sai_train_er_func(df_tb3ms=df_tb3ms,
-                                                     df_sec_rets=df_sec_rets,
-                                                     dic_fundamentals=dic_fundamentals,
-                                                     df_ff_factors=df_ff_factors,
-                                                     date_end=t,  # << Training, No data snooping
-                                                     buysell_threshold_quantile=buysell_threshold_quantile,
-                                                     lift_cut_off=lift_cut_off,
-                                                     forecast_ahead=forecast_ahead,
-                                                     window_size=window_size,
-                                                     func_training_period=func_training_period)
+            try:
+                sai_mod, sai_X, _, _ = SAIInvesting.sai_train_er_func(df_tb3ms=df_tb3ms,
+                                                         df_sec_rets=df_sec_rets,
+                                                         dic_fundamentals=dic_fundamentals,
+                                                         df_ff_factors=df_ff_factors,
+                                                         date_end=t,  # << Training, No data snooping
+                                                         buysell_threshold_quantile=buysell_threshold_quantile,
+                                                         lift_cut_off=lift_cut_off,
+                                                         forecast_ahead=forecast_ahead,
+                                                         window_size=window_size,
+                                                         func_training_period=func_training_period)
 
-            # Generate E(R) from our stock level factor model...
-            e_r = SAIInvesting.sai_forecast_er(sai_mod=sai_mod,
-                                  df_tb3ms=df_tb3ms,
-                                  df_sec_rets=df_sec_rets,
-                                  df_ff_factors=df_ff_factors,
-                                  dic_fundamentals=dic_fundamentals,
-                                  date_end=t,
-                                  buysell_threshold_quantile=buysell_threshold_quantile,
-                                  lift_cut_off=lift_cut_off,
-                                  window_size=window_size,
-                                  training_columns_used=sai_X.columns)  # << Some data available in the train window may not be available in the test window (or vice versa)
-
+                # Generate E(R) from our stock level factor model...
+                e_r = SAIInvesting.sai_forecast_er(sai_mod=sai_mod,
+                                      df_tb3ms=df_tb3ms,
+                                      df_sec_rets=df_sec_rets,
+                                      df_ff_factors=df_ff_factors,
+                                      dic_fundamentals=dic_fundamentals,
+                                      date_end=t,
+                                      buysell_threshold_quantile=buysell_threshold_quantile,
+                                      lift_cut_off=lift_cut_off,
+                                      window_size=window_size,
+                                      training_columns_used=sai_X.columns)  # << Some data available in the train window may not be available in the test window (or vice versa)
+            except:
+                if t == start_period:
+                    raise TypeError("No trades created. Cannot continue...")
+                else:                
+                    e_r = pd.DataFrame(df_all_er.iloc[t+1, :].copy(deep=True).T)
+                    e_r.columns = ['exp_returns']
+                
             # Only keep er values from benchmark, nan all non benchmark stocks
-            benchmark_mask = df_benchmark_trades.iloc[t, :] == 0
-            cols_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
-            df_benchmark_trades.iloc[t, cols_to_nan] = np.nan
+            if df_benchmark_trades is not None:                
+                benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
+                col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
+                cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
+                cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
+                e_r.loc[cols_to_nan] = np.nan
 
-            df_all_er.iloc[t, :] = e_r.T
+            df_all_er.iloc[t, :] = e_r['exp_returns'].T
 
         return df_all_er, sai_mod
 
@@ -1840,13 +1866,7 @@ class LinearFactorInvesting():
           e_r: expected return forecast
 
       '''
-
-      #df_stock_factor_loadings=pd.DataFrame(ols_coefs) 
-      #df_ff_factors=df_ff_factors
-      #r_f=df_tb3ms.iloc[t, 0]
-      #date_start = 80+12
-      #date_end = 12
-
+    
       # sanity
       if date_start < date_end: 
         raise TypeError("Latest date is date=0, date_start is > date_end")
@@ -1979,16 +1999,16 @@ class LinearFactorInvesting():
 
         # start period?
         if df_benchmark_trades is None:
-            start_period = df_ff_factors.shape[0]
+            start_period = df_ff_factors.shape[0] - max(factor_return_history, window_size) -1
         else:
-            start_period = min(df_benchmark_trades.shape[0], df_ff_factors.shape[0])
+            start_period = min(df_benchmark_trades.shape[0] - max(factor_return_history, window_size), df_ff_factors.shape[0] - max(factor_return_history, window_size))-1
 
             # Progress
         pbar = tqdm()
-        pbar.reset(total=df_ff_factors.shape[0] - window_size - 1)  # initialise with new `total`
+        pbar.reset(total=start_period - 1)  # initialise with new `total`
 
         # Step through time... earliest to latest.
-        for t in range(start_period - window_size - 1, -1, -1):
+        for t in range(start_period, -1, -1):
             # Progress
             pbar.update()
 
@@ -1996,8 +2016,7 @@ class LinearFactorInvesting():
             ols_coefs, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
                                                                df_sec_rets=df_sec_rets,
                                                                df_ff_factors=df_ff_factors,
-                                                               date_start=t + window_size,
-                                                               # << Note we pass in the start date here
+                                                               date_start=t + window_size, # << Note we pass in the start date here
                                                                date_end=t,  # << Note we pass in the end date here
                                                                test_complexity=False)
 
@@ -2009,6 +2028,15 @@ class LinearFactorInvesting():
                                           date_start=t + factor_return_history,
                                           date_end=t)
 
+            
+            # Only keep er values from benchmark, nan all non benchmark stocks
+            if df_benchmark_trades is not None:
+                benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
+                col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
+                cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
+                cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
+                e_r.loc[cols_to_nan] = np.nan
+                        
             df_stock_er.iloc[t, :] = e_r
 
         # Set zeros to nan
@@ -2121,3 +2149,363 @@ class LinearFactorInvesting():
         plt.show()    
 
       return (ols_model, y, y_hat)
+
+
+
+"""Summary
+"""
+import pandas as pd
+import numpy as np
+from typing import Union, List, Set, Tuple, Callable
+
+from mlxtend.frequent_patterns import fpgrowth, association_rules
+from mlxtend.preprocessing import TransactionEncoder
+
+from pandarallel import pandarallel
+import psutil
+import warnings
+warnings.simplefilter(action='ignore', category=FutureWarning)
+
+
+class SAI_new(object):
+
+    """This class applies SAI algorithm to stock selection; therefore, invest-SAI. It allows users to train SAI rules that
+    runs to generate interpretable rule that generates well into identifying peforming securities in the future
+    Attributes:
+        nb_workers (int): The number of cpu available for parallelization
+        parallel (bool): run the module in parallel
+        params (dict): all the parameters required to instantiate the object
+        q (int): quantile for discretization
+        rules (pd.DataFrame): output rules and the correspoinding metrics
+        te_ary (object): object that holds the tranformation to fpgrowth input data format
+        verbose (boolean): flag to suppress progress bar and messages
+    """
+
+    def __init__(self, params: dict) -> None:
+        """Object class to train SAI model to predict the top performing securities
+        Args:
+            params (dict): q: quantile for discretizing
+                            parallel: parallelization
+                            )
+        Raises:
+            ValueError: Description
+        """
+        self.params = params
+        self.q = params.get('q', 2)
+        self.verbose = params.get('verbose', True)
+        progress_bar = True if self.verbose else False
+        if self.q < 2:
+            raise ValueError(
+                "require to discretize input variables into at least 2 categories; variables that are not discretized into more than one category do not offer additional information")
+        self.parallel = params.get('parallel', True)
+        if self.parallel:
+            nb_workers = params.get(
+                'nb_workers', None)
+            self.nb_workers = nb_workers if nb_workers else psutil.cpu_count(
+                logical=False)
+            pandarallel.initialize(
+                progress_bar=progress_bar, nb_workers=self.nb_workers, verbose=0)
+
+    def __discretize(self, df: Union[pd.Series, pd.DataFrame], q: int = 3) -> Tuple[pd.DataFrame, dict]:
+        """Descretize numeric columns of dataframe into quantile buckets {Name}_1 - {Name}_q;
+        N/A belongs to {Name}_0
+        Args:
+            df (Union[pd.Series, pd.DataFrame]): input pandas dataframe or series with only numeric cols
+            q (int, optional): quantile for discretization
+        Returns:
+            Tuple[pd.DataFrame, dict]: return pandas dataframe with discretized categories and dictionary
+            of dicretization cutpoints for all columns.
+        Raises:
+            TypeError: when input datafram in not a pandas dataframe or series
+        """
+        if not(isinstance(df, pd.DataFrame) | isinstance(df, pd.Series)):
+            raise TypeError(
+                "Function can only discretize pandas DataFrame or Series")
+        df_new = df.copy() if isinstance(df, pd.DataFrame) else pd.DataFrame(
+            data=df.copy(), columns=[df.name])
+
+        def d(x: pd.Series, q: int) -> Tuple[pd.Series, np.array]:
+            """sub method for lambda function to discretize a pandas series
+            Args:
+                x (pd.Series): input pandas series
+                q (int): quantiles for discretization
+            Returns:
+                Tuple[pd.Series, np.array]: return series after discretization and discretization cutpoints
+            """
+            x_new, bins = pd.qcut(
+                x, q, labels=[f'{x.name}_{str(i)}' for i in range(1, q + 1)], duplicates='drop', retbins=True)
+            x_new = x_new.cat.add_categories(f'{x.name}_0')
+            x_new[x_new.isna()] = f'{x.name}_0'
+            return x_new, bins
+
+        cutpoints = {}
+        # df_new = df_new.copy()
+        for column in df_new:
+            df_new.loc[:, column], cutpoints[column] = d(
+                df_new.loc[:, column], q)
+        return df_new, cutpoints
+
+    def __apply_discretize(self, df: Union[pd.Series, pd.DataFrame], cutpoints: dict) -> Tuple[pd.DataFrame, dict]:
+        """This method discretes data by providing specific cutpoints
+        Args:
+            df (Union[pd.Series, pd.DataFrame]): Input dataframe/Series for discretization
+            cutpoints (dict): cutoints provided for discretization
+        Returns:
+            Tuple[pd.DataFrame, dict]: discretized dataset and cutpoints used to discretize
+        Raises:
+            TypeError: raise error if the input df is not pandas dataframe or series
+        """
+        if not(isinstance(df, pd.DataFrame) | isinstance(df, pd.Series)):
+            raise TypeError(
+                "Function can only discretize pandas DataFrame or Series")
+        df_new = df.copy() if isinstance(df, pd.DataFrame) else pd.DataFrame(
+            data=df.copy(), columns=[df.name])
+
+        for column in df_new:
+            df_new.loc[df_new[column] <= cutpoints[column]
+                       [0], column] = cutpoints[column][0] + cutpoints[column][0] * 0.0001
+            df_new.loc[df_new[column] >= cutpoints[column]
+                       [-1], column] = cutpoints[column][-1] - cutpoints[column][-1] * 0.0001
+            df_new[column] = pd.cut(df_new.loc[:, column], cutpoints[column], labels=[
+                f'{column}_{str(i)}' for i in range(1, self.q + 1)])
+            df_new[column] = df_new.loc[:,
+                                        column].cat.add_categories(f'{column}_0')
+            df_new[column].loc[df_new[column].isna()] = f'{column}_0'
+        return df_new, cutpoints
+
+    def __discretize_mixed_type(self, df: pd.DataFrame, disc_func: Callable, **kwargs) -> Tuple[pd.DataFrame, dict]:
+        """method to hand case when data has a mix of numeric and non-numeric columns (i.e. sector)
+        Args:
+            df (pd.DataFrame): Input pandas dataframe, it can contain pure numeric or mix of numeric/non-numeric
+            disc_func (Callable): the descretization method used,
+            **kwargs: arguments provided for the disc_func
+            __discretize <- use quantile, __apply_discretize <- provide cutpoints
+        Returns:
+            Tuple[pd.DataFrame, dict]: pandas dataframe with discretized columns and discretization cutpoints
+        Deleted Parameters:
+            q (int): qunatile for discretization
+        """
+        # non_numeric_cols = [
+        #     col for col in df.columns if not np.issubdtype(df[col].dtype, np.number)]
+
+        if not(isinstance(df, pd.DataFrame)):
+            raise TypeError(
+                "Function can only input pandas DataFrame df")
+
+        non_numeric_cols = df.select_dtypes(
+            exclude=np.number).columns.tolist()
+
+        if not non_numeric_cols:
+            return disc_func(df=df, **kwargs)
+        else:
+            dff = df.loc[:, ~df.columns.isin(non_numeric_cols)]
+            numerics_discretized, cutpoints = disc_func(df=dff, **kwargs)
+            return pd.concat([numerics_discretized, df.loc[:, non_numeric_cols]], axis=1), cutpoints
+
+    def __preprocess(self, X: pd.DataFrame, y: pd.DataFrame, q: int) -> List[List[str]]:
+        """process input data dict and append discretized monthly pandas dataframe for training SAI
+        Args:
+            X (pd.DataFrame): Input data
+            y (pd.DataFrame): response data, label {0,1} whether the security is successul (1)
+            q (int): quantile for discretization
+        Returns:
+            List[List[str]]: list containts list of dicretized field representing a security
+        """
+        if not(isinstance(X, pd.DataFrame) & isinstance(y, pd.DataFrame)):
+            raise TypeError(
+                "Both X and y must be pandas DataFrame")
+
+        if not isinstance(q, int):
+            raise TypeError(
+                "q for discretization must be integer")
+
+        x_discretized, self.cutpoints = self.__discretize_mixed_type(
+            df=X, q=q, disc_func=self.__discretize)
+        y_cat = pd.DataFrame(y.iloc[:, 0].map(
+            {1: 'success', 0: 'fail'}), columns=['y']).set_index(x_discretized.index)
+        Xy = pd.concat(
+            [x_discretized, y_cat], axis=1)
+        return Xy.values.tolist()
+
+    def fit(self, X: pd.DataFrame, y: pd.DataFrame, yreal: pd.DataFrame) -> None:
+        """Train SAI with input data. Build Rules and assign probabilites to each rule
+        Args:
+            X (pd.DataFrame): Input data with variable/factor items (column) for all securities (row)
+            y (pd.DataFrame): response variable suggest the security is considered successful (1)
+        Deleted Parameters:
+            metric (str, optional): metric used to sort output rules i.e. support, confidence, lift, leverage, conviction
+        Raises:
+            ValueError: Description
+        """
+                 
+        
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError(
+                "X must be a pandas DataFrame with dimension n x m (i.e. n is number of securities and m is the number of variables")
+        if not isinstance(y, pd.DataFrame):
+            raise ValueError(
+                "y must be a pandas DataFrame with values as labels {0,1} indentifying whether the security at column n is considered as successful (1)")
+        if X.shape[0] != y.shape[0]:
+            raise ValueError(
+                "The row dimension for both X and y must be the same")
+
+        TrainData = self.__preprocess(X, y, q=self.q)
+        te = TransactionEncoder()
+        self.te_ary = te.fit(TrainData)
+        dataset = pd.DataFrame(
+            self.te_ary.transform(TrainData), columns=te.columns_)
+
+        if self.verbose:
+            print('\n...................................')
+            print('   training Invest-SAI algorithm   ')
+            print('...................................\n')
+
+        freqitemset = fpgrowth(
+            dataset, min_support=0.05, use_colnames=True)
+
+        self.rules = association_rules(
+            freqitemset, metric="confidence", min_threshold=0)
+
+        def relevant_stocks(rule):
+            """sub method for lambda function to calculate an equal-weighted average of the
+                returns of all the relevant stocks that are passed by a rule
+            Args:
+                rule (TYPE): rule that represent equity charateristics
+            Returns:
+                TYPE: average returns from all the relevant stocks
+            """
+            relevant = []
+            for s in TrainData:
+                rel = set(rule).issubset(s)
+                relevant.append(rel)
+            return yreal.loc[relevant].mean()
+                
+        if self.parallel:
+            #self.rules = self.rules.loc[self.rules['consequents'].parallel_apply(
+            #    lambda x: x.issubset(['success']) | x.issubset(['fail']))]
+            self.rules = self.rules.loc[self.rules['consequents'].parallel_apply(
+                lambda x: x.issubset(['success']))]
+            self.rules['exp_returns'] = self.rules['antecedents'].parallel_apply(
+                relevant_stocks)
+        else:
+            #self.rules = self.rules.loc[self.rules['consequents'].apply(
+            #    lambda x: x.issubset(['success']) | x.issubset(['fail']))]
+            self.rules = self.rules.loc[self.rules['consequents'].apply(
+                lambda x: x.issubset(['success']))]
+            self.rules['exp_returns'] = self.rules['antecedents'].apply(
+                relevant_stocks)
+
+        numerator = self.rules['support'] * (1 - self.rules['antecedent support'] -
+                                             self.rules['consequent support'] + self.rules['support'])
+        denominator = (self.rules['consequent support'] - self.rules['support']) * (
+            self.rules['antecedent support'] - self.rules['support'])
+        mask = denominator != 0
+
+        self.rules.loc[mask, 'odd_ratio'] = numerator.loc[mask] / \
+            denominator.loc[mask]
+        self.rules.dropna(inplace=True)
+        self.rules = self.rules[['antecedents',
+                                 'confidence', 'odd_ratio', 'lift', 'exp_returns']].sort_values('exp_returns', ascending=False)
+        self.rules.rename(columns={'antecedents': 'rules',
+                                   'confidence': 'cond_success_prob',
+                                   'lift': 'causal_lift',
+                                   'exp_returns': 'returns'}, inplace=True)
+
+    def predict(self, X: pd.DataFrame, 
+                metric: str = 'returns', 
+                eval_metric: str = 'causal_lift', 
+                eval_val: float = 0) -> pd.DataFrame:
+        """Assign to probabilties to a new set of securities using the learned rules
+        equal-weighted the success probabilities of the rules that represent the security
+        Args:
+            X (pd.DataFrame): Input pandas dataframe with each row represent a security
+            metric (str, optional): The metric used to rank securities, i.e. support, confidence, lift, leverage, conviction
+            eval_metric (str, optional): provide a evaluation metric to further assess the rule (i.e. how many of the averaged rules
+            are above a causal lift of 1, or how many of the averaged rules with returns > 0)
+            eval_val (float, optional): set the threshold for evaluation (i.e. 0 with causal lift will count all averaged rules because
+            causal lift is always > 0)
+        Returns:
+            pd.DataFrame: a pandas dataframe with the right-most column to rank securities
+        Raises:
+            ValueError: Description
+        """
+        if not isinstance(X, pd.DataFrame):
+            raise ValueError(
+                "X must be a pd.DataFrame containing the securities that users want to rank and the corresopnding variables")
+
+        XTest, _ = self.__discretize_mixed_type(
+            df=X, cutpoints=self.cutpoints, disc_func=self.__apply_discretize)
+
+        # rules_filtered = self.rules[self.rules[metric] >= cutoff]
+
+        if self.verbose:
+            print('\n....................................')
+            print('            predicting             ')
+            print('...................................\n')
+
+        if self.parallel:
+            def avg_val(s: pd.Series, r: pd.DataFrame) -> float:
+                """sub method for lambda function to calculate an equal-weighted average of the
+                success probabilities of all the rules that represent a security
+                Args:
+                    s (pd.Series): a series of discreteize category to represent a security
+                    r (pd.DataFrame): a pandas dataframe contains all rules and corresponding probabilites
+                Returns:
+                    float: expected sucess probability of the security
+                """
+                cnt = 0
+                val = 0
+                cnt_eval = 0
+                for row in r.itertuples():
+                    if getattr(row, 'rules').issubset(s):
+                        #val += getattr(row, metric)
+                        #cnt += 1
+                        #if getattr(row, eval_metric) >= eval_val:
+                        #    cnt_eval += 1
+                        
+                        # eval_metric >= eval_val ... include in calculation...
+                        if getattr(row, eval_metric) >= eval_val:
+                            val += getattr(row, metric)
+                            cnt += 1
+                            cnt_eval += 1
+                return (val / cnt, cnt_eval) if cnt > 0 else (np.nan, cnt_eval)
+
+            display(XTest)
+            probs = XTest.parallel_apply(
+                lambda x: avg_val(x, self.rules), axis=1).tolist()
+
+        else:
+            XTest = XTest.values.tolist()
+            probs = []
+
+            def get_val(s: List, r: pd.Series) -> Tuple[bool, int]:
+                """sub method for lambda function to evaluate whether a stock passed a rule, and if so, whether
+                the rule is greater than the evaluation threshold (i.e. causal lift > 1)
+                Args:
+                    s (pd.Series): a series of discreteize category to represent a security
+                    r (pd.DataFrame): a pandas series contains a rule and corresponding probabilites
+                Returns:
+                    tuple: boolean whether a stock passed a rule, 1 if the passed rule is greater than evaluation
+                    threshold
+                """
+                if getattr(r, 'rules').issubset(s):
+                    #rule = True
+                    #cnt_eval = 1 if getattr(r, eval_metric) >= eval_val else 0
+                    
+                    # eval_metric >= eval_val ... include in calculation...
+                    if getattr(r, eval_metric) >= eval_val:
+                        rule = True
+                        cnt_eval = 1
+                    else:
+                        rule = False
+                        cnt_eval = 0
+                        
+                else:
+                    rule, cnt_eval = False, 0
+                return rule, cnt_eval
+            
+            for s in XTest:
+                rules = [list(z) for z in zip(*self.rules.apply(lambda r: get_val(s, r), axis=1))]
+                probs.append((self.rules.loc[rules[0], metric].mean(), sum(rules[1])))
+                
+        return pd.DataFrame(probs, columns=['exp_' + metric, 'cnt_eval'], index=X.index).sort_values('exp_' + metric, ascending=False)
