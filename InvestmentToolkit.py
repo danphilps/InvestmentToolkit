@@ -130,8 +130,12 @@ class SAI_new(object):
             Returns:
                 Tuple[pd.Series, np.array]: return series after discretization and discretization cutpoints
             """
-            x_new, bins = pd.qcut(
-                x, q, labels=[f'{x.name}_{str(i)}' for i in range(1, q + 1)], duplicates='drop', retbins=True)
+            try:
+                x_new, bins = pd.qcut(
+                    x, q, labels=[f'{x.name}_{str(i)}' for i in range(1, q + 1)], duplicates='drop', retbins=True)
+            except:
+                raise TypeError('FAILED ON QCUT:' +  x.name)
+                
             x_new = x_new.cat.add_categories(f'{x.name}_0')
             x_new[x_new.isna()] = f'{x.name}_0'
             return x_new, bins
