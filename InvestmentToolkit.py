@@ -1817,7 +1817,7 @@ class SAIInvesting():
             # Convert y to a {1,0} classifier {buy, sell}
             if buysell_threshold_quantile == 0:
                 # flag all items... with non-zero
-                buysell_mask = (y_t['y'] <> 0)
+                buysell_mask = (y_t['y'] != 0)
             elif buysell_threshold_quantile < 0:
                 # flag all items... with non-zero
                 buy_threshold = y_t[y_t.isna() == False]['y'].quantile(q=(1-abs(buysell_threshold_quantile)))
