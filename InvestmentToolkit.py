@@ -1686,7 +1686,7 @@ class SAIInvesting():
             dic_fundamentals: dictionary containing fundamentals
             date_end: training time window end period
             func_training_period: pass 1 for predictions, >=1 for training. How many periods to use to train the nn? func_training_period=1 will use only one cross section, t=date_end
-            buysell_threshold_quantile: which quantile of return should we consider a "buy" and a sell: top/bottom 10th, top/bottom 30th percentile
+            buysell_threshold_quantile: which quantile of return should we consider a "buy" and a sell: =0 flags all for rules; positive value flags top/bottom 10th, top/bottom 30th percentile; negative value flags only top
             forecast_ahead: how many periods ahead are we predicting. Set this to 0 if we need data to predict.
             window_size: return window to use when calculating stock and factor returns.
         Returns:
@@ -1710,9 +1710,8 @@ class SAIInvesting():
         if (window_size < 0) | (window_size > df_sec_rets.shape[0]):
             raise TypeError("(window_size < 0) | (window_size > df_sec_rets.shape[0]")
         
-        buysell_threshold_quantile = abs(buysell_threshold_quantile)
-        if buysell_threshold_quantile > 0.4:
-            raise TypeError("NB - this function flags the top and bottom using this param: buysell_threshold_quantile > 0.4")
+        if abs(buysell_threshold_quantile) > 0.5:
+            raise TypeError("NB - this function flags the top and bottom using this param: buysell_threshold_quantile > 0.5")
             
         # Validate: get all dates and tickets from fundamentals
         check_index = None
@@ -1816,10 +1815,18 @@ class SAIInvesting():
             # Capture the best and the worst to create SAI rules for...
             # ===========================================================
             # Convert y to a {1,0} classifier {buy, sell}
-            buy_threshold = y_t[y_t.isna() == False]['y'].quantile(q=(1-buysell_threshold_quantile))
-            sell_threshold = y_t[y_t.isna() == False]['y'].quantile(q=buysell_threshold_quantile)
-            buysell_mask = (y_t['y'] >= buy_threshold) | (y_t['y'] <= sell_threshold)
-            
+            if buysell_threshold_quantile == 0:
+                # flag all items... with non-zero
+                buysell_mask = (y_t['y'] <> 0)
+            elif buysell_threshold_quantile < 0:
+                # flag all items... with non-zero
+                buy_threshold = y_t[y_t.isna() == False]['y'].quantile(q=(1-abs(buysell_threshold_quantile)))
+                buysell_mask = (y_t['y'] >= buy_threshold) | (y_t['y'] <= sell_threshold)
+            else:
+                buy_threshold = y_t[y_t.isna() == False]['y'].quantile(q=(1-buysell_threshold_quantile))
+                sell_threshold = y_t[y_t.isna() == False]['y'].quantile(q=buysell_threshold_quantile)
+                buysell_mask = (y_t['y'] >= buy_threshold) | (y_t['y'] <= sell_threshold)
+
             # y class...
             y_class_t = y_t.copy(deep=True)
             y_class_t['y'] = 0
