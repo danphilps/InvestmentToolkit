@@ -1709,12 +1709,14 @@ class SAIInvesting():
         # sanity
         if func_training_period < 1:
             raise TypeError("func_training_period < 1: must have at least 1 training period")
-        if df_ff_factors.shape[0] < df_ff_factors.shape[1]:
-            raise TypeError("Must pass factor returns as columns not rows")
+        if df_ff_factors is not None:
+            if df_ff_factors.shape[0] < df_ff_factors.shape[1]:
+                raise TypeError("Must pass factor returns as columns not rows")
+            if df_ff_factors.index[0] != df_sec_rets.index[0]:
+                raise TypeError("Dates misaligned")
+                
         if df_tb3ms.index[0] != df_sec_rets.index[0]:
-            raise TypeError("Dates misaligned")
-        if df_ff_factors.index[0] != df_sec_rets.index[0]:
-            raise TypeError("Dates misaligned")
+            raise TypeError("Dates misaligned")        
         if df_tb3ms.index[0] != df_sec_rets.index[0]:
             raise TypeError("Dates misaligned")
         if (func_training_period < 0) | (func_training_period > df_sec_rets.shape[0]):
