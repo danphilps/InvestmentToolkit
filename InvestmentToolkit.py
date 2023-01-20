@@ -2149,7 +2149,7 @@ class SAIInvesting():
         if df_benchmark_trades is None:
             raise TypeError("df_benchmark_trades is required")
         else:
-            start_period = min(df_benchmark_trades.shape[0] - forecast_ahead + window_size - func_training_period, df_ff_factors.shape[0] - forecast_ahead - window_size - func_training_period) 
+            start_period = min(df_benchmark_trades.shape[0] - forecast_ahead + window_size - func_training_period, df_ff_factors.shape[0] - forecast_ahead - window_size - func_training_period) -1
         
         # Progress
         pbar = tqdm()
