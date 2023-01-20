@@ -2190,7 +2190,7 @@ class SAIInvesting():
             except:
                 if t == start_period:
                     #raise TypeError("No trades created. Cannot continue...")
-                    er_generated = True
+                    er_generated = False
                 else:                
                     e_r = pd.DataFrame(df_all_er.iloc[t+1, :].copy(deep=True).T)
                     e_r.columns = ['exp_returns']
