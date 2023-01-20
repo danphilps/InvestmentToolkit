@@ -1602,56 +1602,65 @@ class NonLinearFactorInvesting():
 
             # Progress
             pbar.update()
+            
+            try:
+                # Run our function, returning only the result object
+                #df_stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
+                #                                                                  df_sec_rets=df_sec_rets,
+                #                                                                  df_ff_factors=df_ff_factors,
+                #                                                                  date_start=t + window_size, # << Note we pass in the start date here
+                #                                                                  date_end=t,
+                #                                                                  test_complexity=False)  # << Note we pass in the end date here
 
-            # Run our function, returning only the result object
-            df_stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
-                                                                              df_sec_rets=df_sec_rets,
-                                                                              df_ff_factors=df_ff_factors,
-                                                                              date_start=t + window_size, # << Note we pass in the start date here
-                                                                              date_end=t,
-                                                                              test_complexity=False)  # << Note we pass in the end date here
+                # Get function of security returns = f(loadings and factor returns)
+                nn_mod, _, _, _ = NonLinearFactorInvesting.nonlinfactor_train_er_func(df_tb3ms=df_tb3ms,
+                                                             df_sec_rets=df_sec_rets,
+                                                             df_ff_factors=df_ff_factors,
+                                                             date_end=t,
+                                                             forecast_ahead=forecast_ahead,
+                                                             window_size=window_size,
+                                                             func_training_period=func_training_period)
 
-            # Get function of security returns = f(loadings and factor returns)
-            nn_mod, _, _, _ = NonLinearFactorInvesting.nonlinfactor_train_er_func(df_tb3ms=df_tb3ms,
-                                                         df_sec_rets=df_sec_rets,
-                                                         df_ff_factors=df_ff_factors,
-                                                         date_end=t,
-                                                         forecast_ahead=forecast_ahead,
-                                                         window_size=window_size,
-                                                         func_training_period=func_training_period)
+                # Get forecast returns...
+                nlf_er = NonLinearFactorInvesting.nonlinfactor_forecast_er(nn_model=nn_mod,
+                                                  df_tb3ms=df_tb3ms,
+                                                  df_sec_rets=df_sec_rets,
+                                                  df_ff_factors=df_ff_factors,
+                                                  date_end=t,
+                                                  window_size=window_size)
 
-            # Get forecast returns...
-            nlf_er = NonLinearFactorInvesting.nonlinfactor_forecast_er(nn_model=nn_mod,
-                                              df_tb3ms=df_tb3ms,
-                                              df_sec_rets=df_sec_rets,
-                                              df_ff_factors=df_ff_factors,
-                                              date_end=t,
-                                              window_size=window_size)
-
+             except:
+                if t == start_period:
+                    #raise TypeError("No trades created. Cannot continue...")
+                    er_generated = False
+                else:                
+                    e_r = pd.DataFrame(nlf_er.iloc[t+1, :].copy(deep=True).T)
+                    e_r.columns = ['exp_returns']
+                        
             # Forecasts may not have the the cols/stocks of df_sec_rets (invalid cols/stocks will be dropped)
-            row_nlf_er = nlf_er.T
-            nlf_er_all_cols = pd.DataFrame(np.zeros((1, df_sec_rets.shape[1])), index=None)
-            nlf_er_all_cols.columns = df_sec_rets.columns
-            nlf_er_all_cols[row_nlf_er.columns] = row_nlf_er
-            
-            
-            # Only keep er values from benchmark, nan all non benchmark stocks
-            if df_benchmark_trades is not None:
-                benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
-                col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
-                cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
-                cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
-                e_r.loc[cols_to_nan] = np.nan
+            if er_generated == True:
+                row_nlf_er = nlf_er.T
+                nlf_er_all_cols = pd.DataFrame(np.zeros((1, df_sec_rets.shape[1])), index=None)
+                nlf_er_all_cols.columns = df_sec_rets.columns
+                nlf_er_all_cols[row_nlf_er.columns] = row_nlf_er
 
-            df_all_er.iloc[t, :] = nlf_er_all_cols
+                # Only keep er values from benchmark, nan all non benchmark stocks
+                if df_benchmark_trades is not None:
+                    benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
+                    col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
+                    cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
+                    cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
+                    e_r.loc[cols_to_nan] = np.nan
 
-            # Set zeros to nan
-            def zero_to_nan(x):
-                if x == 0:
-                    x = np.nan
-                return x
+                df_all_er.iloc[t, :] = nlf_er_all_cols
 
-            df_all_er = df_all_er.applymap(zero_to_nan)
+                # Set zeros to nan
+                def zero_to_nan(x):
+                    if x == 0:
+                        x = np.nan
+                    return x
+
+                df_all_er = df_all_er.applymap(zero_to_nan)
 
         return df_all_er, nn_mod
 
