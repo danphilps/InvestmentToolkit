@@ -2216,7 +2216,11 @@ class SAIInvesting():
                 else:                
                     e_r = pd.DataFrame(df_all_er.iloc[t+1, :].copy(deep=True).T)
                     e_r.columns = ['exp_returns']
-                
+            
+            # Number of rules?
+            if plot_residual_analytics:
+                display(sai_mod.rules[(sai_mod.rules['causal_lift']>lift_cut_off)].reset_index(drop=True))            
+            
             # Only keep er values from benchmark, nan all non benchmark stocks
             if er_generated == True:
                 if df_benchmark_trades is not None:                
