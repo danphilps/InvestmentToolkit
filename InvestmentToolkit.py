@@ -1601,8 +1601,7 @@ class NonLinearFactorInvesting():
         for t in range(start_period, -1, -1):
 
             # Progress
-            pbar.update()
-            
+            pbar.update()            
             try:
                 # Run our function, returning only the result object
                 #df_stock_factor_loadings, _, _ = LinearFactorInvesting.factormodel_train_manysecurities(df_tb3ms=df_tb3ms,
@@ -1629,7 +1628,7 @@ class NonLinearFactorInvesting():
                                                   date_end=t,
                                                   window_size=window_size)
 
-             except:
+            except:
                 if t == start_period:
                     #raise TypeError("No trades created. Cannot continue...")
                     er_generated = False
