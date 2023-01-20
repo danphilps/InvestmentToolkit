@@ -2164,6 +2164,7 @@ class SAIInvesting():
             start_period - 1)  # initialise with new `total`
 
         # Step through time... earliest to latest.
+        sai_mod = None
         for t in range(start_period, -1, -1):
             # Progress
             pbar.update()
