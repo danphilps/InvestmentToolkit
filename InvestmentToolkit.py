@@ -1884,7 +1884,7 @@ class SAIInvesting():
                         X_curr_di_t.columns = [dict_idx]
                         # Non-zero/nulls > 25%?
                         zero_nulls = X_curr_di_t.isna().sum().values + X_curr_di_t[(X_curr_di_t == 0)].sum().values
-                        if (zero_nulls / len(X_curr_di_t) < 0.5):
+                        if (zero_nulls / len(X_curr_di_t) < 0.6):
                             # Add to X_t
                             X_t = pd.concat([X_t, X_curr_di_t], axis=1)
 
