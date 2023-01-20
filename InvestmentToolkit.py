@@ -2185,22 +2185,26 @@ class SAIInvesting():
                                       lift_cut_off=lift_cut_off,
                                       window_size=window_size,
                                       training_columns_used=sai_X.columns)  # << Some data available in the train window may not be available in the test window (or vice versa)
+                
+                er_generated = True
             except:
                 if t == start_period:
-                    raise TypeError("No trades created. Cannot continue...")
+                    #raise TypeError("No trades created. Cannot continue...")
+                    er_generated = True
                 else:                
                     e_r = pd.DataFrame(df_all_er.iloc[t+1, :].copy(deep=True).T)
                     e_r.columns = ['exp_returns']
                 
             # Only keep er values from benchmark, nan all non benchmark stocks
-            if df_benchmark_trades is not None:                
-                benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
-                col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
-                cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
-                cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
-                e_r.loc[cols_to_nan] = np.nan
+            if er_generated == True:
+                if df_benchmark_trades is not None:                
+                    benchmark_mask = df_benchmark_trades.iloc[t, :] == 0 | df_benchmark_trades.iloc[t, :].isna()
+                    col_nos_to_nan = list(itertools.compress(range(len(benchmark_mask)), benchmark_mask))
+                    cols_to_nan = df_benchmark_trades.columns[col_nos_to_nan]
+                    cols_to_nan = [col for col in cols_to_nan if col in e_r.index]                
+                    e_r.loc[cols_to_nan] = np.nan
 
-            df_all_er.iloc[t, :] = e_r['exp_returns'].T
+                df_all_er.iloc[t, :] = e_r['exp_returns'].T
 
         return df_all_er, sai_mod
 
