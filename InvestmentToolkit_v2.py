@@ -529,9 +529,10 @@ class SimulationUtils():
                     # Remove all positions
                     df_sec_cagr.iloc[t, :] = 0
                     # df_sec_cagr[df_sec_cagr.columns[trade_buy_flag]].iloc[t,:] = df_trades[df_trades.columns[trade_buy_flag]].iloc[t,:].copy() * cagr_total
-                    for j in range(df_sec_cagr.shape[1]):
-                        if trade_buy_flag[j]:
-                            df_sec_cagr.iloc[t, j] = df_trades.iloc[t, j] * cagr_total
+                    #for j in range(df_sec_cagr.shape[1]):
+                    #    if trade_buy_flag[j]:
+                    #        df_sec_cagr.iloc[t, j] = df_trades.iloc[t, j] * cagr_total
+                    df_sec_cagr.iloc[t, trade_buy_flag] = df_trades.iloc[t, trade_buy_flag] * cagr_total
 
                     # Sanity
                     if len(df_trades.columns[trade_buy_flag]) == 0:
@@ -545,10 +546,11 @@ class SimulationUtils():
                     # trans_costs_current_applied = trans_costs_current_applied.copy(deep=True)
                     # df_sec_cagr[df_sec_cagr.columns[trade_buy_flag]].iloc[t,:] += trans_costs_current_applied
                     trans_costs_current = abs(df_trades.iloc[t, :] - df_sec_cagr.iloc[t, :] / cagr_total)
-                    for j in range(df_sec_cagr.shape[1]):
-                        if trade_buy_flag[j]:
-                            df_sec_cagr.iloc[t, j] += df_trades.iloc[t, j] * -abs(trans_costs_current.iloc[j])
-
+                    #for j in range(df_sec_cagr.shape[1]):
+                    #    if trade_buy_flag[j]:
+                    #        df_sec_cagr.iloc[t, j] += df_trades.iloc[t, j] * -abs(trans_costs_current.iloc[j])
+                    df_sec_cagr.iloc[t, trade_buy_flag] += df_trades.iloc[t, trade_buy_flag] * -abs(trans_costs_current.iloc[trade_buy_flag])
+                    
                     period_no += 1
             else:
                 # No trades... Positions roll forwards...
@@ -557,8 +559,9 @@ class SimulationUtils():
                 if df_sec_rets.iloc[t, :].abs().sum(skipna=True) == 0:
                     raise TypeError("Returns are zero in period: " + str(i))
                     # df_sec_cagr.iloc[t,:] = df_sec_cagr.iloc[t+1,:] * (1+df_sec_rets.iloc[t,:])
-                for j in range(df_sec_cagr.shape[1]):
-                    df_sec_cagr.iloc[t, j] = df_sec_cagr.iloc[t + 1, j] * (1 + df_sec_rets.iloc[t, j])
+                #for j in range(df_sec_cagr.shape[1]):
+                #    df_sec_cagr.iloc[t, j] = df_sec_cagr.iloc[t + 1, j] * (1 + df_sec_rets.iloc[t, j])
+                df_sec_cagr.iloc[t, :] = df_sec_cagr.iloc[t + 1, :] * (1 + df_sec_rets.iloc[t, :])
 
                 period_no += 1
 
@@ -1315,9 +1318,9 @@ class NonLinearFactorInvesting():
             stock_returns.astype(float)
 
             # Adjust returns for r_fs
-            for j in range(0, stock_returns.shape[1] - 1):
-                stock_returns.iloc[:, j] = (1 + stock_returns.iloc[:, j].values) / (
-                            1 + rf_ret.iloc[:, 0].values) - 1  # subtract r_f from each monthly return
+            #for j in range(0, stock_returns.shape[1] - 1):
+            #    stock_returns.iloc[:, j] = (1 + stock_returns.iloc[:, j].values) / (1 + rf_ret.iloc[:, 0].values) - 1  # subtract r_f from each monthly return
+            stock_returns.iloc[:, :] = (1 + stock_returns.iloc[:, :].values) / (1 + rf_ret.iloc[:, 0].values) - 1  # subtract r_f from each monthly return
             stock_returns = np.array(1 + stock_returns).prod(axis=0)
 
             # Annualize
@@ -1348,8 +1351,9 @@ class NonLinearFactorInvesting():
             X_index = stock_factor_loadings.index + '_coef'
 
             # Add factor returns to X (duplicate for each stock)
-            for j in range(0, stock_factor_loadings.shape[1]):
-                X_t.iloc[stock_factor_loadings.shape[0]:, j] = factor_excess_returns
+            #for j in range(0, stock_factor_loadings.shape[1]):
+            #    X_t.iloc[stock_factor_loadings.shape[0]:, j] = factor_excess_returns
+            X_t.iloc[stock_factor_loadings.shape[0]:, :] = factor_excess_returns   
             X_index = X_index.append(df_ff_factors.columns + '_ret')
             X_t.index = X_index
 
@@ -1781,9 +1785,9 @@ class SAIInvesting():
             stock_returns.astype(float)
 
             # Adjust returns for r_fs
-            for j in range(0, stock_returns.shape[1] - 1):
-                stock_returns.iloc[:, j] = (1 + stock_returns.iloc[:, j].values) / (
-                            1 + rf_ret.iloc[:, 0].values) - 1  # subtract r_f from each monthly return
+            #for j in range(0, stock_returns.shape[1] - 1):
+            #    stock_returns.iloc[:, j] = (1 + stock_returns.iloc[:, j].values) / (1 + rf_ret.iloc[:, 0].values) - 1  # subtract r_f from each monthly return
+            stock_returns.iloc[:, :] = (1 + stock_returns.iloc[:, :].values) / (1 + rf_ret.iloc[:, 0].values) - 1  # subtract r_f from each monthly return
             stock_returns = np.array(1 + stock_returns).prod(axis=0)
 
             # Annualize
