@@ -2219,6 +2219,7 @@ class SAIInvesting():
             
             # Number of rules?
             if plot_residual_analytics:
+                print('Time period: ' + str(t))
                 display(sai_mod.rules[(sai_mod.rules['causal_lift']>lift_cut_off)].reset_index(drop=True))            
             
             # Only keep er values from benchmark, nan all non benchmark stocks
