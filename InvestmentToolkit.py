@@ -1627,7 +1627,7 @@ class NonLinearFactorInvesting():
                                                   df_ff_factors=df_ff_factors,
                                                   date_end=t,
                                                   window_size=window_size)
-
+                er_generated = True
             except:
                 if t == start_period:
                     #raise TypeError("No trades created. Cannot continue...")
