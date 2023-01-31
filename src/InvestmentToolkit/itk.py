@@ -1671,7 +1671,7 @@ class SAIInvesting():
 
         # Train SAI...
         # ==========================
-        sai_mod = SAI_new(params=params)
+        sai_mod = SAI(params=params)
         sai_mod.fit(X=sai_train_X,
                     y=sai_train_y_class,
                     yreal=sai_train_y_tr)
